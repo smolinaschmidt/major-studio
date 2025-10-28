@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Art & Scale</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <section id="hero-section">
+        
+        <p class="top-right-label">PAINTINGS<br>MINIATURES<br>DECADES</p>
+        <p class="hero-description">
+            Art and Scale is a data visualization exercise that explores the physical dimensions and visual impact of art across different historical decades.
+        </p>
+
+        <div id="image-marquee-container">
+            <div id="marquee-inner">
+            </div>
+        </div>
+        
+        <h1 class="background-title">Art &amp; Scale</h1>
+
+        <a href="#editorial-section" id="to-gallery" class="scroll-arrow" aria-label="Scroll to data section"> 
+            <span>↓</span>
+        </a>
+        
+    </section>
+
+    <section id="editorial-section">
+        
+        <div class="editorial-column editorial-description">
+            <h2 class="editorial-title">Exploring the Scale of Art History</h2>
+            <p class="editorial-text">
+                This project analyzes data from The Revolutionary Era Art Collections, focusing on how the physical size of the artworks has changed or remained consistent across decades, from 18th-century miniatures to larger canvases. We use real dimensions to visually illustrate these scale differences.
+            </p>
+            <p class="editorial-text-small">
+                The dataset includes a mix of paintings and miniatures by different artists. Scroll down to view the grid below and explore the proportions to scale.
+            </p>
+            <a href="#gallery-page" class="scroll-arrow-internal" aria-label="View the gallery">
+                VIEW THE GALLERY
+            </a>
+        </div>
+        
+        <div class="editorial-column editorial-data">
+            
+            <div class="insight-item">
+                <span class="insight-value" id="total-artworks">0</span>
+                <span class="insight-label">Total Artworks Analyzed</span>
+            </div>
+            
+            <div class="insight-item">
+                <span class="insight-label">Largest Artwork</span>
+                <span class="insight-value-small" id="largest-artwork-name">Loading Name...</span>
+                <span class="insight-measure" id="largest-artwork-measure">0 x 0 in</span>
+            </div>
+
+            <div class="insight-item">
+                <span class="insight-label">Smallest Artwork</span>
+                <span class="insight-value-small" id="smallest-artwork-name">Loading Name...</span>
+                <span class="insight-measure" id="smallest-artwork-measure">0 x 0 in</span>
+            </div>
+            
+            <div class="data-group-row">
+                <div class="insight-item-small">
+                    <span class="insight-value-mini" id="count-miniatures">0</span>
+                    <span class="insight-label-mini">Miniatures</span>
+                </div>
+                <div class="insight-item-small">
+                    <span class="insight-value-mini" id="count-paintings">0</span>
+                    <span class="insight-label-mini">Paintings</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <div id="gallery-page">
+        
+        <header>
+            <div id="filter-controls">
+                </div>
+        </header>
+        
+        <div id="gallery-container">
+            </div>
+    </div>
+    
+    <div id="full-size-modal" class="modal">
+        <span class="close-button">&times;</span>
+        <div id="modal-image-container">
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
