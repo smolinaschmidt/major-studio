@@ -17,7 +17,7 @@ body {
     padding: 0;
     background-color: var(--background-color); 
     color: var(--primary-color);
-    line-height: 1.6;
+    line-height: 2;
     overflow-x: hidden; 
 }
 
