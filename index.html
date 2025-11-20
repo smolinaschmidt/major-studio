@@ -10,15 +10,13 @@
 <body>
 
     <section id="hero-section">
-        
         <p class="top-right-label">PAINTINGS<br>MINIATURES<br>DECADES</p>
         <p class="hero-description">
             Art and Scale is a data visualization exercise that explores the physical dimensions and visual impact of art across different historical decades.
         </p>
 
         <div id="image-marquee-container">
-            <div id="marquee-inner">
-            </div>
+            <div id="marquee-inner"></div>
         </div>
         
         <h1 class="background-title">Art &amp; Scale</h1>
@@ -26,11 +24,9 @@
         <a href="#editorial-section" id="to-gallery" class="scroll-arrow" aria-label="Scroll to data section"> 
             <span>↓</span>
         </a>
-        
     </section>
 
     <section id="editorial-section">
-        
         <div class="editorial-column editorial-description">
             <h2 class="editorial-title">Exploring the Scale of Art History</h2>
             <p class="editorial-text">
@@ -39,13 +35,15 @@
             <p class="editorial-text-small">
                 The dataset includes a mix of paintings and miniatures by different artists. Scroll down to view the grid below and explore the proportions to scale.
             </p>
+            
+            <button id="unit-toggle-btn" class="unit-toggle-btn">SWITCH TO CENTIMETERS (CM)</button>
+
             <a href="#gallery-page" class="scroll-arrow-internal" aria-label="View the gallery">
                 VIEW THE GALLERY
             </a>
         </div>
         
         <div class="editorial-column editorial-data">
-            
             <div class="insight-item">
                 <span class="insight-value" id="total-artworks">0</span>
                 <span class="insight-label">Total Artworks Analyzed</span>
@@ -73,25 +71,26 @@
                     <span class="insight-label-mini">Paintings</span>
                 </div>
             </div>
-
         </div>
     </section>
 
     <div id="gallery-page">
-        
         <header>
-            <div id="filter-controls">
-                </div>
+            <div id="filter-controls"></div>
         </header>
         
-        <div id="gallery-container">
-            </div>
+        <div id="gallery-container"></div>
     </div>
     
     <div id="full-size-modal" class="modal">
         <span class="close-button">&times;</span>
-        <div id="modal-image-container">
+        
+        <div id="modal-scroll-wrapper">
+            <div id="modal-visual-content">
+                <div id="modal-image-container"></div>
+                </div>
         </div>
+
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>

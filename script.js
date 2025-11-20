@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const marqueeInner = document.getElementById('marquee-inner');
     const marqueeScaleFactor = 5.5;
     
-
     const totalArtworksSpan = document.getElementById('total-artworks');
     const largestArtworkNameSpan = document.getElementById('largest-artwork-name');
     const largestArtworkMeasureSpan = document.getElementById('largest-artwork-measure');
@@ -11,166 +10,101 @@ document.addEventListener('DOMContentLoaded', () => {
     const smallestArtworkMeasureSpan = document.getElementById('smallest-artwork-measure');
     const countMiniaturesSpan = document.getElementById('count-miniatures');
     const countPaintingsSpan = document.getElementById('count-paintings');
-
+    
+    const unitToggleBtn = document.getElementById('unit-toggle-btn');
 
     const galleryContainer = document.getElementById('gallery-container');
     const filterControls = document.getElementById('filter-controls'); 
     const modal = document.getElementById('full-size-modal');
+    const modalVisualContent = document.getElementById('modal-visual-content');
+    
     if (modal) modal.style.display = 'none';
-
 
     const GALLERY_PADDING = 20;     
     const MIN_SPACING = 5;          
     const TARGET_ROW_COUNT = 5;     
     const MAX_DIMENSION_PX = 1200;  
-    const MODAL_CM_SCALE = 37.8; 
+    const MODAL_CM_SCALE = 37.8; // 1cm = 37.8px aprox
     const CM_TO_INCH = 0.393701;
-    let DECADES = []; 
-
+    
+    // Referencias (CM)
+    const PERSON_HEIGHT_CM = 170; 
+    const COIN_DIAMETER_CM = 2.42; 
 
     const csvFilePath = 'Database.csv';
     let allArtworkData = []; 
     let allGalleryItems = []; 
     let globalScaleFactor = 0; 
-
-
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    }
-
-    function parseDimensions(dimString) {
-        if (typeof dimString !== 'string') return null;
-        const cleanedString = dimString.toLowerCase().replace(/[^0-9.x]/g, '');
-        const parts = cleanedString.split('x');
-        if (parts.length >= 2) {
-            const h = parseFloat(parts[0]);
-            const w = parseFloat(parts[1]);
-            if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
-                return { w_cm: w, h_cm: h }; 
-            }
-        }
-        return null;
-    }
-    
+    let isMetric = false; 
 
     function dimensionCMToNumbers(dimText) {
         if (!dimText) return { heightCM: 0, widthCM: 0 };
-        // Asume H x W
-        const dimensions = dimText.toLowerCase().replace(/x/g, ' ').split(/\s+/).map(s => parseFloat(s.trim()));
-        return { heightCM: dimensions[0] || 0, widthCM: dimensions[1] || 0 };
+        const cleaned = dimText.toLowerCase().replace(/x/g, ' ').split(/\s+/);
+        const h = parseFloat(cleaned[0]);
+        const w = parseFloat(cleaned[1]);
+        return { heightCM: h || 0, widthCM: w || 0 };
     }
-    
 
+    // Ordenar Menor a Mayor Área
     function sortData(data) {
         return data.sort((a, b) => {
             const dimA = dimensionCMToNumbers(a['DIMSENSIONS (CM)']); 
             const dimB = dimensionCMToNumbers(b['DIMSENSIONS (CM)']);
             const areaA = dimA.heightCM * dimA.widthCM;
             const areaB = dimB.heightCM * dimB.widthCM;
-            return areaA - areaB; // Ordena de menor a mayor área
+            return areaA - areaB;
         });
     }
 
-
-    function setupEditorialSection(data) {
-        if (data.length === 0) return;
-
-
-        const sortedData = sortData([...data]);
-        const smallest = sortedData[0]; 
-        const largest = sortedData[sortedData.length - 1];
-        
-
-        const countMiniatures = data.filter(item => item.TYPE && item.TYPE.toLowerCase() === 'miniature').length;
-        const countPaintings = data.filter(item => item.TYPE && item.TYPE.toLowerCase() === 'painting').length;
-
-
-        if (totalArtworksSpan) {
-            animateCount(totalArtworksSpan, data.length);
+    function updateEditorialText() {
+        if (unitToggleBtn) {
+            unitToggleBtn.textContent = isMetric ? 'SWITCH TO INCHES (IN)' : 'SWITCH TO CENTIMETERS (CM)';
         }
-        
-
         if (largestArtworkNameSpan && largestArtworkMeasureSpan) {
-            const { heightCM, widthCM } = dimensionCMToNumbers(largest['DIMSENSIONS (CM)']);
-            const heightIN = (heightCM * CM_TO_INCH).toFixed(1);
-            const widthIN = (widthCM * CM_TO_INCH).toFixed(1);
-
-
             largestArtworkNameSpan.textContent = 'Helen Brought to Paris';
-            largestArtworkMeasureSpan.textContent = `56.4 x 78.1 in`;
+            largestArtworkMeasureSpan.textContent = isMetric ? '143.3 x 198.4 cm' : '56.4 x 78.1 in';
         }
-        
-
         if (smallestArtworkNameSpan && smallestArtworkMeasureSpan) {
-            const { heightCM, widthCM } = dimensionCMToNumbers(smallest['DIMSENSIONS (CM)']);
-            const heightIN = (heightCM * CM_TO_INCH).toFixed(1);
-            const widthIN = (widthCM * CM_TO_INCH).toFixed(1);
-
             smallestArtworkNameSpan.textContent = 'Eye of a Lady';
-            smallestArtworkMeasureSpan.textContent = `0.6 x 0.7 in`;
-        }
-
-        if (countMiniaturesSpan) {
-            animateCount(countMiniaturesSpan, countMiniatures);
-        }
-        if (countPaintingsSpan) {
-            animateCount(countPaintingsSpan, countPaintings);
+            smallestArtworkMeasureSpan.textContent = isMetric ? '1.5 x 1.8 cm' : '0.6 x 0.7 in';
         }
     }
 
-    function animateCount(element, finalValue) {
-        const duration = 1500; // 1.5 segundos
-        const start = 0;
-        let startTime = null;
+    function setupEditorialSection(data) {
+        if (data.length === 0) return;
+        const countMiniatures = data.filter(item => item.TYPE && item.TYPE.toLowerCase().includes('miniature')).length;
+        const countPaintings = data.filter(item => item.TYPE && item.TYPE.toLowerCase().includes('painting')).length;
 
-        const step = (timestamp) => {
-            if (!startTime) startTime = timestamp;
-            const progress = timestamp - startTime;
-            
-            const currentValue = Math.min(finalValue, start + (finalValue - start) * (progress / duration));
-            element.textContent = Math.floor(currentValue).toLocaleString('en-US'); // Usar coma para miles
+        if (totalArtworksSpan) totalArtworksSpan.textContent = data.length;
+        updateEditorialText();
+        if (countMiniaturesSpan) countMiniaturesSpan.textContent = countMiniatures;
+        if (countPaintingsSpan) countPaintingsSpan.textContent = countPaintings;
+    }
 
-            if (progress < duration) {
-                window.requestAnimationFrame(step);
-            } else {
-                element.textContent = finalValue.toLocaleString('en-US');
-            }
-        };
-
-        window.requestAnimationFrame(step);
+    if (unitToggleBtn) {
+        unitToggleBtn.addEventListener('click', () => {
+            isMetric = !isMetric;
+            updateEditorialText();
+        });
     }
     
     function setupImageMarquee(artworkData) {
         if (!marqueeInner) return;
-        
-        const marqueeItems = artworkData.slice(0, 30);
-        
-        const createMarqueeElement = (item) => {
-            const dims = parseDimensions(item['DIMSENSIONS (CM)']);
-            if (!dims || !item['MEDIA URL']) return null;
-
-            const widthPx = dims.w_cm * marqueeScaleFactor;
-            const heightPx = dims.h_cm * marqueeScaleFactor;
-            
+        const marqueeItems = [...artworkData].sort(() => Math.random() - 0.5).slice(0, 30);
+        const elements = marqueeItems.map(item => {
+            const { heightCM } = dimensionCMToNumbers(item['DIMSENSIONS (CM)']);
+            if (heightCM === 0 || !item['MEDIA URL']) return null;
+            const heightPx = heightCM * marqueeScaleFactor;
             const wrapper = document.createElement('div');
             wrapper.className = 'marquee-item';
-            
             const img = document.createElement('img');
             img.src = item['MEDIA URL'];
-            img.alt = item.NAME;
             img.className = 'marquee-img';
-            img.style.width = `${widthPx}px`;
             img.style.height = `${heightPx}px`;
-            img.loading = 'lazy';
-            
             wrapper.appendChild(img);
             return wrapper;
-        };
+        }).filter(Boolean);
 
-        const elements = marqueeItems.map(createMarqueeElement).filter(Boolean);
         if (elements.length > 0) {
             marqueeInner.innerHTML = ''; 
             marqueeInner.append(...elements);
@@ -179,8 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calculateDynamicScale(data, availableWidth) {
-        const sortedData = sortData([...data]); 
-        const itemsToCalculate = sortedData.slice(0, Math.min(TARGET_ROW_COUNT, sortedData.length)); 
+        const itemsToCalculate = data.slice(0, Math.min(TARGET_ROW_COUNT, data.length)); 
         if (itemsToCalculate.length === 0) return 2.5; 
 
         let totalCmWidth = 0;
@@ -189,40 +122,37 @@ document.addEventListener('DOMContentLoaded', () => {
             totalCmWidth += widthCM;
         });
 
-        const totalSpacing = (itemsToCalculate.length - 1) * MIN_SPACING;
         const effectiveAvailableWidth = availableWidth - (GALLERY_PADDING * 2);
+        const totalSpacing = (itemsToCalculate.length - 1) * MIN_SPACING;
         if (totalCmWidth === 0 || effectiveAvailableWidth <= 0) return 2.5; 
 
         const baseScale = (effectiveAvailableWidth - totalSpacing) / totalCmWidth; 
-        const SCALE_MULTIPLIER = 1.25; 
-        return baseScale * SCALE_MULTIPLIER;
+        return baseScale * 1.25; 
     }
     
     function positionGalleryItems(itemsToPosition) {
-        const dynamicScaleFactor = globalScaleFactor; 
         if (!galleryContainer) return;
         const containerRect = galleryContainer.getBoundingClientRect();
-        const availableWidth = containerRect.width; 
-        const effectiveAvailableWidth = availableWidth - (GALLERY_PADDING * 2);
+        const effectiveAvailableWidth = containerRect.width - (GALLERY_PADDING * 2);
 
-        const preparedItems = itemsToPosition.filter(itemDiv => !itemDiv.classList.contains('filtered')).map(itemDiv => {
+        const preparedItems = itemsToPosition.filter(item => !item.classList.contains('filtered')).map(itemDiv => {
             const widthCM = parseFloat(itemDiv.dataset.widthCm);
             const heightCM = parseFloat(itemDiv.dataset.heightCm);
-            let finalWidthPX = widthCM * dynamicScaleFactor; 
-            let finalHeightPX = heightCM * dynamicScaleFactor;
-            let aspectRatio = finalWidthPX / finalHeightPX;
+            let finalWidthPX = widthCM * globalScaleFactor; 
+            let finalHeightPX = heightCM * globalScaleFactor;
             
             if (finalWidthPX > MAX_DIMENSION_PX || finalHeightPX > MAX_DIMENSION_PX) {
-                 if (finalWidthPX > finalHeightPX) {
-                     finalWidthPX = MAX_DIMENSION_PX;
-                     finalHeightPX = finalWidthPX / aspectRatio;
-                 } else {
-                     finalHeightPX = MAX_DIMENSION_PX;
-                     finalWidthPX = finalHeightPX * aspectRatio;
-                 }
+                const ratio = finalWidthPX / finalHeightPX;
+                if (finalWidthPX > finalHeightPX) {
+                    finalWidthPX = MAX_DIMENSION_PX;
+                    finalHeightPX = finalWidthPX / ratio;
+                } else {
+                    finalHeightPX = MAX_DIMENSION_PX;
+                    finalWidthPX = finalHeightPX * ratio;
+                }
             }
-            return { div: itemDiv, width: finalWidthPX, height: finalHeightPX, aspectRatio: aspectRatio };
-        }).filter(item => item.width > 0 && item.height > 0);
+            return { div: itemDiv, width: finalWidthPX, height: finalHeightPX };
+        }).filter(i => i.width > 0);
 
         let rows = [];
         let currentRow = [];
@@ -242,39 +172,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentRow.length > 0) rows.push(currentRow);
 
         let currentY = GALLERY_PADDING;
-        let totalHeight = 0;
-
         rows.forEach((row) => {
-            if (row.length === 0) return;
             let rowMaxHeight = 0;
             row.forEach(item => { if (item.height > rowMaxHeight) rowMaxHeight = item.height; });
-
-            let totalRowWidth = 0;
-            row.forEach(item => { totalRowWidth += item.width; });
-            totalRowWidth += (row.length - 1) * MIN_SPACING;
-            
-            const leftOffset = (effectiveAvailableWidth - totalRowWidth) / 2;
-            let currentX = GALLERY_PADDING + leftOffset;
+            let totalRowWidth = row.reduce((sum, item) => sum + item.width, 0) + (row.length - 1) * MIN_SPACING;
+            let currentX = GALLERY_PADDING + (effectiveAvailableWidth - totalRowWidth) / 2;
 
             row.forEach(item => {
-                const finalWidth = item.width;
-                const finalHeight = item.height;
-                const verticalOffset = (rowMaxHeight - finalHeight) / 2;
-                const itemTopPosition = currentY + verticalOffset;
-                
+                const verticalOffset = (rowMaxHeight - item.height) / 2;
                 item.div.style.position = 'absolute';
-                item.div.style.top = `${itemTopPosition}px`;
+                item.div.style.top = `${currentY + verticalOffset}px`;
                 item.div.style.left = `${currentX}px`;
-                item.div.style.width = `${finalWidth}px`;
-                item.div.style.height = `${finalHeight}px`;
-
-                currentX += finalWidth + MIN_SPACING;
+                item.div.style.width = `${item.width}px`;
+                item.div.style.height = `${item.height}px`;
+                currentX += item.width + MIN_SPACING;
             });
             currentY += rowMaxHeight + MIN_SPACING;
         });
-
-        totalHeight = currentY + GALLERY_PADDING;
-        galleryContainer.style.height = `${totalHeight}px`;
+        galleryContainer.style.height = `${currentY + GALLERY_PADDING}px`;
     }
 
     function renderAllItems(items) {
@@ -282,20 +197,27 @@ document.addEventListener('DOMContentLoaded', () => {
         galleryContainer.innerHTML = ''; 
         allGalleryItems = []; 
         
-        const availableWidth = galleryContainer.getBoundingClientRect().width;
-        globalScaleFactor = calculateDynamicScale(items, availableWidth);
-
-        
+        globalScaleFactor = calculateDynamicScale(items, galleryContainer.getBoundingClientRect().width);
         const DECADES = [...new Set(items.map(item => item.DECADE))].filter(d => d).sort();
 
         items.forEach(itemData => {
-            const itemDiv = createGalleryItem(itemData);
-            if (itemDiv) {
+            const { heightCM, widthCM } = dimensionCMToNumbers(itemData['DIMSENSIONS (CM)']);
+            if (heightCM > 0 && widthCM > 0) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'gallery-item';
+                itemDiv.dataset.decade = itemData.DECADE;
+                itemDiv.dataset.widthCm = widthCM;
+                itemDiv.dataset.heightCm = heightCM;
+
+                const img = document.createElement('img');
+                img.src = itemData['MEDIA URL'];
+                img.loading = 'lazy'; 
+                itemDiv.appendChild(img);
+                itemDiv.addEventListener('click', () => openModal(itemData));
                 allGalleryItems.push(itemDiv);
                 galleryContainer.appendChild(itemDiv);
             }
         });
-        
         positionGalleryItems(allGalleryItems);
         return DECADES;
     }
@@ -303,179 +225,218 @@ document.addEventListener('DOMContentLoaded', () => {
     function initFilterControls(decadesArray) {
         if (!filterControls) return;
         filterControls.innerHTML = ''; 
-
         const allButton = document.createElement('button');
         allButton.className = 'filter-button active-filter';
         allButton.textContent = 'ALL';
         allButton.dataset.decade = 'ALL';
-        allButton.addEventListener('click', () => filterGallery('ALL'));
+        allButton.addEventListener('click', () => {
+            document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active-filter'));
+            allButton.classList.add('active-filter');
+            filterGallery('ALL');
+        });
         filterControls.appendChild(allButton);
-
         decadesArray.forEach(decade => {
             const button = document.createElement('button');
             button.className = 'filter-button';
             button.textContent = decade;
             button.dataset.decade = decade;
-            button.addEventListener('click', () => filterGallery(decade));
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active-filter'));
+                button.classList.add('active-filter');
+                filterGallery(decade);
+            });
             filterControls.appendChild(button);
         });
     }
     
     function filterGallery(decade) {
-        const buttons = filterControls.querySelectorAll('.filter-button');
-        buttons.forEach(button => {
-            button.classList.toggle('active-filter', button.dataset.decade === decade);
-        });
-
         const itemsToPosition = [];
         allGalleryItems.forEach(itemDiv => {
-            const itemDecade = itemDiv.dataset.decade;
-            const isMatch = (decade === 'ALL' || itemDecade === decade);
+            const isMatch = (decade === 'ALL' || itemDiv.dataset.decade === decade);
             itemDiv.classList.toggle('filtered', !isMatch);
-            if(isMatch) {
-                itemsToPosition.push(itemDiv);
-            }
+            if(isMatch) itemsToPosition.push(itemDiv);
         });
-
         positionGalleryItems(itemsToPosition);
     }
 
-    function createGalleryItem(itemData) {
-        const { heightCM, widthCM } = dimensionCMToNumbers(itemData['DIMSENSIONS (CM)']);
-        if (heightCM === 0 || widthCM === 0) return null;
+    // --- LOGICA DEL MODAL MEJORADA ---
 
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'gallery-item';
-        itemDiv.dataset.decade = itemData.DECADE;
-        itemDiv.dataset.widthCm = widthCM;
-        itemDiv.dataset.heightCm = heightCM;
-
-        const img = document.createElement('img');
-        img.src = itemData['MEDIA URL'];
-        img.alt = itemData.NAME;
-        img.loading = 'lazy'; 
-        itemDiv.appendChild(img);
-
-        itemDiv.addEventListener('click', () => openModal(itemData));
-        return itemDiv;
-    }
-    
     function openModal(itemData) {
         if (!modal) return;
         
         const { heightCM, widthCM } = dimensionCMToNumbers(itemData['DIMSENSIONS (CM)']);
-        const widthPx = widthCM * MODAL_CM_SCALE;
-        const heightPx = heightCM * MODAL_CM_SCALE;
-        const widthIn = (widthCM * CM_TO_INCH).toFixed(1);
-        const heightIn = (heightCM * CM_TO_INCH).toFixed(1);
+        
+        // 1. Determinar Referencia y Texto
+        const isMiniature = itemData.TYPE && itemData.TYPE.toLowerCase().includes('miniature');
+        const refHeightCM = isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM;
+        const refLabelText = isMiniature ? "2.4 cm" : "170 cm"; // Tooltip text
+        
+        const refSVG = isMiniature 
+            ? `<svg viewBox="0 0 100 100" style="width:100%; height:100%;"><circle cx="50" cy="50" r="48" fill="#e0e0e0" stroke="#999" stroke-width="2"/><text x="50" y="55" font-size="25" text-anchor="middle" fill="#777">25¢</text></svg>` 
+            : `<svg viewBox="0 0 100 300" preserveAspectRatio="xMidYMax meet" style="width:100%; height:100%;"><circle cx="50" cy="30" r="20" fill="#333"/><rect x="20" y="60" width="60" height="140" fill="#333"/><rect x="30" y="200" width="15" height="90" fill="#333"/><rect x="55" y="200" width="15" height="90" fill="#333"/></svg>`; 
 
         const imgContainer = document.getElementById('modal-image-container');
-        imgContainer.innerHTML = `<img src="${itemData['MEDIA URL']}" alt="${itemData.NAME}" style="width: ${widthPx}px; height: ${heightPx}px;">`;
+        imgContainer.innerHTML = `<img id="modal-main-img" src="${itemData['MEDIA URL']}">`;
+        const mainImg = document.getElementById('modal-main-img');
+
+        // 2. Crear contenedor de referencia con etiqueta
+        const refContainer = document.createElement('div');
+        refContainer.className = 'ref-object-container';
+        refContainer.innerHTML = `
+            <div class="ref-svg-wrapper" style="width: 100%; height: 100%; flex:1;">${refSVG}</div>
+            <div class="ref-label">${refLabelText}</div>
+        `;
         
-        const oldInfo = modal.querySelector('.modal-info-container');
-        if (oldInfo) oldInfo.remove();
+        // Limpiar referencias anteriores
+        const oldRefs = modalVisualContent.querySelectorAll('.ref-object-container');
+        oldRefs.forEach(el => el.remove());
+        
+        modalVisualContent.appendChild(refContainer); 
+
+        // 3. Info Box
+        const existingInfo = modal.querySelector('.modal-info-container');
+        if (existingInfo) existingInfo.remove();
 
         const infoContainer = document.createElement('div');
         infoContainer.className = 'modal-info-container';
+        
+        const widthIn = (widthCM * CM_TO_INCH).toFixed(1);
+        const heightIn = (heightCM * CM_TO_INCH).toFixed(1);
+        const displayDim = isMetric 
+            ? `${heightCM.toFixed(1)} x ${widthCM.toFixed(1)} cm`
+            : `${heightIn} x ${widthIn} in`;
+
+        // Botón Scale oculto para miniaturas
+        const scaleBtnStyle = isMiniature ? 'display: none;' : '';
+
         infoContainer.innerHTML = `
             <h3 class="modal-info-title">${itemData.NAME}</h3>
             <p class="modal-info-details">
-                ${itemData.DATE} <br>
-                ${itemData.TYPE} <br>
-                ${heightIn} x ${widthIn} in
+                ${itemData.DATE}<br>${itemData.TYPE}<br><strong>${displayDim}</strong>
             </p>
+            <div class="modal-controls">
+                <button id="btn-actual" class="modal-btn active">Actual Size</button>
+                <button id="btn-scale" class="modal-btn" style="${scaleBtnStyle}">Scale</button>
+                <button id="btn-compare" class="modal-btn">Compare</button>
+            </div>
+            <div id="scale-feedback" class="scale-feedback">Scale: 100%</div>
         `;
         modal.appendChild(infoContainer);
 
-        modal.style.display = 'grid'; 
+        const feedbackEl = document.getElementById('scale-feedback');
+
+        // 4. Lógica de Escalado Sincronizado
+        function setScale(mode) {
+            let finalScaleFactor = 1; // 1 = 100% Actual Size
+
+            if (mode === 'actual') {
+                // Escala "Real" basada en DPI promedio
+                finalScaleFactor = 1; // Lógica base es scale * MODAL_CM_SCALE
+                
+                const wPx = widthCM * MODAL_CM_SCALE;
+                const hPx = heightCM * MODAL_CM_SCALE;
+                const refHPx = refHeightCM * MODAL_CM_SCALE;
+
+                mainImg.style.width = `${wPx}px`;
+                mainImg.style.height = `${hPx}px`;
+                
+                // Referencia sigue a la imagen
+                refContainer.style.height = `${refHPx}px`;
+                refContainer.style.width = isMiniature ? `${refHPx}px` : `${refHPx * 0.3}px`; // Aspect ratio aprox
+
+                feedbackEl.textContent = "Scale: 100% (Actual Size)";
+
+            } else if (mode === 'fit') {
+                // Ajustar a la ventana (85%)
+                const winW = window.innerWidth * 0.85;
+                const winH = window.innerHeight * 0.85;
+                const scaleX = winW / widthCM;
+                const scaleY = winH / heightCM;
+                
+                // Pixeles por CM calculados para encajar
+                const fitPxPerCm = Math.min(scaleX, scaleY); 
+                
+                const wPx = widthCM * fitPxPerCm;
+                const hPx = heightCM * fitPxPerCm;
+                const refHPx = refHeightCM * fitPxPerCm;
+
+                mainImg.style.width = `${wPx}px`;
+                mainImg.style.height = `${hPx}px`;
+                
+                refContainer.style.height = `${refHPx}px`;
+                refContainer.style.width = isMiniature ? `${refHPx}px` : `${refHPx * 0.3}px`;
+
+                // Calcular porcentaje relativo al tamaño real
+                const percentage = Math.round((fitPxPerCm / MODAL_CM_SCALE) * 100);
+                feedbackEl.textContent = `Scale: ${percentage}% (Fit to Screen)`;
+            }
+        }
+
+        // Estado Inicial
+        setScale('actual');
+
+        const btnActual = document.getElementById('btn-actual');
+        const btnScale = document.getElementById('btn-scale');
+        const btnCompare = document.getElementById('btn-compare');
+
+        btnActual.addEventListener('click', () => {
+            btnActual.classList.add('active');
+            if(btnScale) btnScale.classList.remove('active');
+            setScale('actual');
+        });
+
+        if(btnScale) {
+            btnScale.addEventListener('click', () => {
+                btnScale.classList.add('active');
+                btnActual.classList.remove('active');
+                setScale('fit');
+            });
+        }
+
+        btnCompare.addEventListener('click', () => {
+            btnCompare.classList.toggle('active');
+            refContainer.classList.toggle('visible');
+        });
+
+        modal.style.display = 'flex'; // Flex para centrar
         
         const closeButton = modal.querySelector('.close-button');
         closeButton.onclick = () => { modal.style.display = 'none'; };
-        modal.onclick = (event) => { 
-            if (event.target === modal) { 
+        modal.onclick = (e) => { 
+            // Cerrar solo si clic en el fondo oscuro (modal), no en el contenido
+            if (e.target === modal || e.target.id === 'modal-scroll-wrapper') { 
                 modal.style.display = 'none'; 
             } 
         };
     }
-    
-    const toGalleryBtn = document.getElementById('to-gallery');
-    if (toGalleryBtn) {
-        toGalleryBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const target = document.getElementById('editorial-section'); 
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    }
-    
-
-    const toGalleryInternalBtn = document.querySelector('.scroll-arrow-internal');
-    if (toGalleryInternalBtn) {
-        toGalleryInternalBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const target = document.getElementById('gallery-page'); 
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    }
-
 
     Papa.parse(csvFilePath, {
         download: true,
         header: true,
         skipEmptyLines: true,
-        
         complete: function(results) {
+            allArtworkData = results.data.filter(item => item['MEDIA URL'] && item['DIMSENSIONS (CM)']);
+            if (allArtworkData.length === 0) return;
             
-
-            allArtworkData = results.data.filter(item => 
-                item['MEDIA URL'] && 
-                item['DIMSENSIONS (CM)'] && 
-                item['DECADE'] &&
-                item['TYPE'] 
-            );
-
-            if (allArtworkData.length === 0) {
-                 if (galleryContainer) {
-                    galleryContainer.innerHTML = "<p style='color: var(--primary-color); text-align: center; font-size: 1.2rem; padding: 40px;'>Notice: The 'Database.csv' file was loaded, but no valid data was found...</p>";
-                 }
-                 return;
-            }
-
-
             allArtworkData = sortData(allArtworkData);
 
             setupEditorialSection(allArtworkData); 
-
-            let marqueeData = [...allArtworkData]; 
-            shuffleArray(marqueeData); 
-            setupImageMarquee(marqueeData);
+            setupImageMarquee(allArtworkData);
 
             const DECADES = renderAllItems(allArtworkData); 
             initFilterControls(DECADES); 
             
-
             let resizeTimer;
             window.addEventListener('resize', () => {
                 clearTimeout(resizeTimer);
                 resizeTimer = setTimeout(() => {
                     if (filterControls && galleryContainer) {
-                        const activeFilter = filterControls.querySelector('.active-filter');
-                        const selectedDecade = activeFilter ? activeFilter.dataset.decade : 'ALL';
-                        const availableWidth = galleryContainer.getBoundingClientRect().width;
-                        globalScaleFactor = calculateDynamicScale(allArtworkData, availableWidth);
-                        filterGallery(selectedDecade); 
+                        renderAllItems(allArtworkData);
+                        const activeBtn = filterControls.querySelector('.active-filter');
+                        if(activeBtn) filterGallery(activeBtn.dataset.decade);
                     }
                 }, 250); 
             });
-        },
-        error: function(error) {
-            console.error("Error loading CSV:", error);
-            if (galleryContainer) {
-                galleryContainer.innerHTML = `<p style='color: var(--primary-color); text-align: center; font-size: 1.2rem; padding: 40px;'>Error: Could not load 'Database.csv'...</p>`;
-            }
         }
     });
 });
