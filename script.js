@@ -431,10 +431,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup modal unit dropdown
         const modalUnitBtn = document.getElementById('modal-unit-toggle-btn');
         const modalUnitDropdown = document.getElementById('modal-unit-dropdown');
-        
+        modalUnitDropdown.style.height = '100px'; 
+        modalUnitDropdown.style.overflow = 'auto';
         modalUnitBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             modalUnitDropdown.classList.toggle('show');
+
         });
         
         modalUnitDropdown.querySelectorAll('.unit-option').forEach(option => {
@@ -517,16 +519,22 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPxPerCm = computePixelsPerCm(mode);
             const wPx = widthCM * currentPxPerCm;
             const hPx = heightCM * currentPxPerCm;
-            
+
+            const scrollWrapper = document.getElementById('modal-scroll-wrapper');
+            // Center in Scale mode; top-align in Actual Size for full scroll
+            if (scrollWrapper) {
+                scrollWrapper.classList.toggle('fit-center', mode !== 'actual');
+            }
+
             mainImg.style.width = `${wPx}px`;
             mainImg.style.height = `${hPx}px`;
-            
+
             const visualContent = document.getElementById('modal-visual-content');
             if (visualContent) {
                 visualContent.style.width = `${wPx}px`;
                 visualContent.style.height = `${hPx}px`;
             }
-            
+
             if (feedbackEl) {
                 if (compareActive && !isMiniature) {
                     const relativePct = Math.round((currentPxPerCm / MODAL_CM_SCALE) * 100);
@@ -538,14 +546,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     feedbackEl.textContent = `Scale: ${pct}% (Fit to Screen)`;
                 }
             }
-            
+
             applyReferenceScale(currentPxPerCm);
-            
-            // Scroll behavior mejorado
-            const scrollWrapper = document.getElementById('modal-scroll-wrapper');
+
+            // Keep initial scroll at top; users can scroll freely in Actual Size
             setTimeout(() => {
-                // Siempre scroll al inicio para ver desde arriba
-                scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+                if (scrollWrapper) scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
             }, 100);
         }
 
@@ -663,18 +669,50 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('art.scale.favorites', JSON.stringify(Array.from(favorites)));
     }
 
-    function addFavoritesFilterButton(decadesArray) {
+    function addFavoritesFilterButton(/* decadesArray */) {
         if (!filterControls) return;
-        const favBtn = document.createElement('button');
-        favBtn.className = 'filter-button';
-        favBtn.textContent = 'FAVORITES';
-        favBtn.dataset.decade = 'FAVORITES';
-        favBtn.addEventListener('click', () => {
+
+        // Avoid duplicates
+        let favBtn = filterControls.querySelector('button[data-decade="FAVORITES"]');
+        if (!favBtn) {
+            favBtn = document.createElement('button');
+            favBtn.className = 'filter-button favorites-tab';
+            favBtn.type = 'button';
+            favBtn.dataset.decade = 'FAVORITES';
+            favBtn.innerHTML = `
+                <span class="filter-star-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212.83 198.6" width="18" height="18">
+                        <polygon points="85.49 78.92 107.2 12.05 129.4 78.92 200.25 78.92 143.12 120.81 164.82 187.69 107.61 146.88 50.32 187.7 71.77 120.81 15.14 78.92 85.49 78.92"/>
+                    </svg>
+                </span>
+                <span>FAVORITES</span>
+            `;
+            favBtn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active-filter'));
+                favBtn.classList.add('active-filter');
+                showFavoritesGrid();
+            });
+        }
+
+        // Insert before ALL (far left)
+        const allBtn = filterControls.querySelector('button[data-decade="ALL"]');
+        if (allBtn) {
+            if (favBtn.previousElementSibling !== allBtn) {
+                filterControls.insertBefore(favBtn, allBtn);
+            } else {
+                filterControls.insertBefore(favBtn, allBtn); // ensure it's before ALL
+            }
+            // Keep ALL active at start
             document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active-filter'));
-            favBtn.classList.add('active-filter');
-            showFavoritesGrid();
-        });
-        filterControls.appendChild(favBtn);
+            allBtn.classList.add('active-filter');
+            if (favoritesContainer && galleryContainer) {
+                favoritesContainer.style.display = 'none';
+                galleryContainer.style.display = 'block';
+            }
+        } else {
+            // Fallback: prepend if ALL not found
+            filterControls.prepend(favBtn);
+        }
     }
 
     function showFavoritesGrid() {
@@ -863,11 +901,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (infoContainer) injectStarToggle(infoContainer, itemData);
     };
 
-    // Mantener filtros visibles y agregar FAVORITES al final
+    // Mantener filtros visibles y agregar FAVORITES al principio (antes de ALL)
     const originalInitFilters = initFilterControls;
     initFilterControls = function(decadesArray) {
         originalInitFilters(decadesArray);
-        addFavoritesFilterButton(decadesArray);
+        addFavoritesFilterButton();
     };
 
     // Mantener comportamiento al cambiar filtros (volver de favorites a grilla principal)

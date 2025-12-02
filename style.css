@@ -274,6 +274,29 @@ body {
     color: var(--primary-color); border-bottom: 2px solid var(--primary-color); opacity: 1; 
 }
 
+.filter-button.icon-only {
+    flex: 0 0 auto;
+    padding: 12px 10px;
+}
+
+/* Favorites tab with star + label */
+.filter-button.favorites-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto; /* do not stretch like decade tabs */
+    padding: 12px 14px;
+}
+.filter-button.favorites-tab .filter-star-icon {
+    width: 18px; height: 18px; display: inline-flex;
+}
+/* Force filled blue star */
+.filter-button.favorites-tab .filter-star-icon svg polygon {
+    fill: var(--primary-color) !important;
+    stroke: var(--primary-color) !important;
+    stroke-width: 4px;
+}
+
 #gallery-container {
     position: relative; width: 95%; max-width: 2500px; margin: 20px auto; 
     min-height: 80vh; background-color: transparent; display: block; 
@@ -322,10 +345,15 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center; /* Centrar horizontalmente */
-    justify-content: flex-start; /* Empezar desde arriba para permitir scroll */
+    justify-content: flex-start; /* top-aligned by default for Actual Size scrolling */
     padding: 80px 0; /* Solo padding vertical */
     box-sizing: border-box;
     scroll-behavior: smooth;
+}
+
+/* Center content when in Scale (fit) mode */
+#modal-scroll-wrapper.fit-center {
+    justify-content: center;
 }
 
 /* Remover clases específicas ya que siempre centramos */
@@ -335,7 +363,7 @@ body {
     min-width: min-content; 
     min-height: min-content;
     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    margin: 0 40px; /* Margin horizontal para espacio en los lados */
+    margin: 0 40px;
 }
 
 #modal-image-container {
