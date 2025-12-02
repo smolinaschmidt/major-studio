@@ -2,6 +2,7 @@
     --primary-color: #0011ff;
     --secondary-color: #0011ff;
     --accent-color: #0011ff;
+    --difference-color: #ffffff;
     --background-color: #ffffff; 
     --border-color: #CCCCCC;      
 }
@@ -28,15 +29,22 @@ body {
 .top-right-label {
     position: absolute; top: 5vh; right: 5vw;
     font-size: clamp(0.8rem, 1vw, 1rem);
-    font-weight: 400; color: var(--secondary-color);
+    font-weight: 400; color: var(--primary-color); /* Siempre azul */
     line-height: 1.3; text-align: right; z-index: 30;
+    background-color: rgba(255, 255, 255, 0.9); /* Fondo blanco semi-transparente */
+    padding: 10px 15px; /* Espacio interno */
+    border-radius: 4px; /* Bordes redondeados suaves */
 }
 
 .hero-description {
     position: absolute; top: 5vh; left: 5vw;
     font-size: clamp(1rem, 1.5vw, 1.2rem); font-weight: 400;
-    color: var(--secondary-color); line-height: 1.3;
+    color: var(--primary-color); line-height: 1.3;
     max-width: 300px; z-index: 40;
+    background-color: rgba(255, 255, 255, 0.9); /* También agregar fondo aquí */
+    padding: 15px; /* Espacio interno */
+    border-radius: 4px;
+    mix-blend-mode: normal; /* Remover blend mode */
 }
 
 #image-marquee-container {
@@ -126,9 +134,53 @@ body {
     background-color: transparent; border: 1px solid var(--primary-color);
     cursor: pointer; text-transform: uppercase; letter-spacing: 0.1em;
     transition: all 0.3s ease; width: max-content;
+    position: relative;
+    z-index: 50; /* Asegurar visibilidad sobre el modal */
 }
 .unit-toggle-btn:hover {
     background-color: var(--primary-color); color: var(--background-color);
+}
+
+.unit-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--background-color);
+    border: 1px solid var(--primary-color);
+    margin-top: 5px;
+    display: none;
+    min-width: 100%;
+    z-index: 1001; /* Mayor que el modal (z-index: 100) */
+}
+
+.unit-dropdown.show {
+    display: block;
+}
+
+.unit-option {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(0, 17, 255, 0.1);
+}
+
+.unit-option:last-child {
+    border-bottom: none;
+}
+
+.unit-option:hover {
+    background-color: var(--primary-color);
+    color: var(--background-color);
+}
+
+.unit-option.active {
+    background-color: rgba(0, 17, 255, 0.1);
 }
 
 .scroll-arrow-internal {
@@ -239,6 +291,8 @@ body {
 
 .gallery-item img {
     width: 100%; height: 100%; object-fit: contain; display: block;
+    background: transparent;
+    border: none;
 }
 
 /* MODAL MEJORADO */
@@ -263,21 +317,25 @@ body {
 /* Wrapper de Scroll para la visualización */
 #modal-scroll-wrapper {
     width: 100%; height: 100%;
-    overflow: auto; /* Permite scroll si la imagen es gigante */
-    display: flex; 
-    align-items: center; /* Centrar cuando cabe */
-    justify-content: center; /* Centrar cuando cabe */
-    padding: 80px 40px; /* Espacio para no chocar con botón cerrar o info */
+    overflow-y: auto; /* Permitir scroll vertical */
+    overflow-x: auto; /* Ocultar scroll horizontal para centrado */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centrar horizontalmente */
+    justify-content: flex-start; /* Empezar desde arriba para permitir scroll */
+    padding: 80px 0; /* Solo padding vertical */
     box-sizing: border-box;
+    scroll-behavior: smooth;
 }
 
-/* Contenedor del contenido visual (Imagen + Referencia) */
+/* Remover clases específicas ya que siempre centramos */
 #modal-visual-content {
-    display: flex; align-items: flex-end; justify-content: center;
-    gap: 30px; 
-    /* Flexibilidad para crecer */
+    position: relative;
+    display: block;
     min-width: min-content; 
     min-height: min-content;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0 40px; /* Margin horizontal para espacio en los lados */
 }
 
 #modal-image-container {
@@ -286,32 +344,55 @@ body {
 
 #modal-image-container img {
     max-width: none; max-height: none; object-fit: contain; display: block;
-    transition: width 0.5s ease, height 0.5s ease;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), height 0.6s cubic-bezier(0.4, 0, 0.2, 1); /* Transición más suave */
+    box-shadow: none;
+    background: transparent;
 }
 
-/* Referencias (Persona/Moneda) */
+/* Referencias con transición */
 .ref-object-container {
-    display: flex; flex-direction: column; align-items: center;
-    flex-shrink: 0; opacity: 0; transform: translateX(-20px);
-    transition: all 0.3s ease; display: none; 
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.ref-object-container.visible {
-    opacity: 1; transform: translateX(0); display: flex;
+.ref-object-container.visible { opacity: 1; }
+.ref-svg-wrapper {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Tooltip/Etiqueta de medida */
 .ref-label {
-    font-family: 'Inter', sans-serif; font-size: 0.8rem; 
-    color: #888; margin-top: 5px; font-weight: 600; text-align: center;
-    white-space: nowrap;
+    font-family: 'Inter', sans-serif; font-size: 0.75rem; 
+    color: var(--primary-color); margin-top: 8px; font-weight: 700; text-align: center;
+    white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 3px;
 }
 
 .modal-info-container {
-    position: fixed; bottom: 30px; left: 30px; width: 320px; max-width: 90%; 
-    padding: 20px; text-align: left; z-index: 101; 
-    border: 1px solid var(--primary-color); background-color: #fff; 
-    color: var(--primary-color); box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    position: fixed; /* Volver a fixed */
+    bottom: 30px; 
+    left: 30px; /* Volver a la esquina izquierda */
+    width: 320px; 
+    max-width: 90%; 
+    max-height: 60vh; /* Limitar altura máxima */
+    padding: 20px; 
+    text-align: left; 
+    z-index: 101; 
+    border: 1px solid var(--primary-color); 
+    background-color: #fff; 
+    color: var(--primary-color); 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    overflow-y: auto; /* Permitir scroll interno */
+    overflow-x: hidden;
 }
 
 .modal-info-title {
@@ -343,4 +424,93 @@ body {
     width: 100%; text-align: center; font-family: 'Inter', sans-serif;
     font-size: 0.75rem; color: var(--secondary-color); margin-top: 8px;
     font-style: italic;
+}
+
+/* Star toggle in modal: icon-only button */
+.modal-star-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--primary-color);
+    background: #fff; color: var(--primary-color);
+    padding: 6px; width: 30px; height: 30px;
+    cursor: pointer; transition: all 0.2s;
+}
+.modal-star-toggle:hover { background: rgba(0,17,255,0.06); }
+.modal-star-icon { display: inline-flex; width: 18px; height: 18px; }
+.modal-star-icon svg polygon {
+    fill: none !important;
+    stroke: var(--primary-color);
+    stroke-width: 4px;
+    transition: fill 0.2s ease;
+}
+.modal-star-icon.filled svg polygon {
+    fill: var(--primary-color) !important;
+}
+
+/* Favorites grid (uniform tiles) */
+#favorites-container {
+    position: relative; width: 95%; max-width: 2500px; margin: 20px auto;
+    min-height: 60vh; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px; align-items: start;
+}
+.fav-item {
+    position: relative; background: #fff; border: 1px solid var(--primary-color);
+    border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 8px;
+}
+.fav-thumb {
+    width: 100%; aspect-ratio: 4/3; object-fit: cover; background: transparent; border: none;
+}
+.fav-select {
+    display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 0.75rem;
+}
+.fav-checkbox { width: 16px; height: 16px; }
+
+/* Favorites compare bar */
+#favorites-compare-bar {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #fff; border: 1px solid var(--primary-color); border-radius: 8px;
+    padding: 10px 14px; display: none; gap: 10px; align-items: center; z-index: 1000;
+    box-shadow: 0 5px 20px rgba(0, 17, 255, 0.2);
+    font-family: 'Inter', sans-serif; font-size: 0.8rem; color: var(--primary-color);
+}
+#favorites-compare-bar.active { display: flex; }
+.fav-compare-btn {
+    background: var(--primary-color); color: #fff; border: none; border-radius: 4px;
+    padding: 8px 12px; font-weight: 700; text-transform: uppercase; cursor: pointer;
+}
+.fav-compare-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+/* Comparison modal (reutilizado para favoritos) */
+.fav-comparison-modal {
+    display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(255, 255, 255, 0.98); overflow-y: auto; overflow-x: hidden;
+}
+.fav-comparison-modal.active { display: block; }
+.fav-comparison-header {
+    position: sticky; top: 0; height: 70px; background: #fff; border-bottom: 1px solid var(--primary-color);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 30px; z-index: 210;
+}
+.fav-comparison-content {
+    display: flex; align-items: flex-end; justify-content: center; gap: 50px; padding: 40px;
+}
+.fav-comp-side .comp-img { display: block; }
+
+/* Footer styles */
+.site-footer {
+    width: 100%;
+    padding: 20px 5vw;
+    box-sizing: border-box;
+    border-top: 1px solid var(--secondary-color);
+    color: var(--secondary-color);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    text-align: center;
+    background: var(--background-color);
+}
+.site-footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 700;
+}
+.site-footer a:hover {
+    text-decoration: underline;
 }

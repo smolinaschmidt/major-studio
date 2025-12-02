@@ -10,9 +10,8 @@
 <body>
 
     <section id="hero-section">
-        <p class="top-right-label">PAINTINGS<br>MINIATURES<br>DECADES</p>
         <p class="hero-description">
-            Art and Scale is a data visualization exercise that explores the physical dimensions and visual impact of art across different historical decades.
+            Explore the true scale of Revolutionary Era artworks. Compare miniatures smaller than a coin to monumental paintings, and experience their actual dimensions on your screen.
         </p>
 
         <div id="image-marquee-container">
@@ -28,36 +27,54 @@
 
     <section id="editorial-section">
         <div class="editorial-column editorial-description">
-            <h2 class="editorial-title">Exploring the Scale of Art History</h2>
+            <h2 class="editorial-title">Understanding Scale Through Data</h2>
             <p class="editorial-text">
-                This project analyzes data from The Revolutionary Era Art Collections, focusing on how the physical size of the artworks has changed or remained consistent across decades, from 18th-century miniatures to larger canvases. We use real dimensions to visually illustrate these scale differences.
+                Revolutionary Era art ranges dramatically in size—from intricate miniatures to grand canvases. This interactive tool lets you visualize these differences at actual size, comparing each artwork to familiar reference objects.
             </p>
             <p class="editorial-text-small">
-                The dataset includes a mix of paintings and miniatures by different artists. Scroll down to view the grid below and explore the proportions to scale.
+                Use the measurement converter to explore dimensions in your preferred units. Click any artwork in the gallery below to view it at three different scales: actual size, fit-to-screen, and with size references.
+                <br><br>
+                Mark artworks with the star icon to add them to Favorites, then compare two or three side by side from the FAVORITES tab.
             </p>
             
-            <button id="unit-toggle-btn" class="unit-toggle-btn">SWITCH TO CENTIMETERS (CM)</button>
+            <div style="position: relative; width: max-content;">
+                <button id="unit-toggle-btn" class="unit-toggle-btn">
+                    MEASUREMENTS
+                    <svg width="10" height="10" viewBox="0 0 10 10" style="margin-left: 8px; vertical-align: middle;">
+                        <line x1="2" y1="3" x2="5" y2="6" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="5" y1="6" x2="8" y2="3" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <div id="unit-dropdown" class="unit-dropdown">
+                    <div class="unit-option active" data-unit="in">INCHES (IN)</div>
+                    <div class="unit-option" data-unit="cm">CENTIMETERS (CM)</div>
+                    <div class="unit-option" data-unit="m">METERS (M)</div>
+                    <div class="unit-option" data-unit="ft">FEET (FT)</div>
+                    <div class="unit-option" data-unit="yd">YARDS (YD)</div>
+                    <div class="unit-option" data-unit="px">PIXELS (PX)</div>
+                </div>
+            </div>
 
             <a href="#gallery-page" class="scroll-arrow-internal" aria-label="View the gallery">
-                VIEW THE GALLERY
+                EXPLORE ARTWORKS
             </a>
         </div>
         
         <div class="editorial-column editorial-data">
             <div class="insight-item">
                 <span class="insight-value" id="total-artworks">0</span>
-                <span class="insight-label">Total Artworks Analyzed</span>
+                <span class="insight-label">Artworks in Collection</span>
             </div>
             
             <div class="insight-item">
                 <span class="insight-label">Largest Artwork</span>
-                <span class="insight-value-small" id="largest-artwork-name">Loading Name...</span>
+                <span class="insight-value-small" id="largest-artwork-name">Loading...</span>
                 <span class="insight-measure" id="largest-artwork-measure">0 x 0 in</span>
             </div>
 
             <div class="insight-item">
                 <span class="insight-label">Smallest Artwork</span>
-                <span class="insight-value-small" id="smallest-artwork-name">Loading Name...</span>
+                <span class="insight-value-small" id="smallest-artwork-name">Loading...</span>
                 <span class="insight-measure" id="smallest-artwork-measure">0 x 0 in</span>
             </div>
             
@@ -80,18 +97,65 @@
         </header>
         
         <div id="gallery-container"></div>
+
+        <!-- Favorites grid (se muestra al elegir filtro FAVORITES) -->
+        <div id="favorites-container" style="display:none;"></div>
     </div>
-    
+
+    <!-- Barra selección favoritos -->
+    <div id="favorites-compare-bar">
+        <span id="fav-selected-count">Selected: 0</span>
+        <button id="fav-unselect" class="fav-compare-btn" type="button">Unselect</button>
+        <button id="fav-compare-view" class="fav-compare-btn" disabled>Compare Selected</button>
+    </div>
+
+    <!-- Modal comparación favoritos -->
+    <div id="fav-comparison-modal" class="fav-comparison-modal">
+        <div class="fav-comparison-header">
+            <h3 style="margin:0;color:var(--primary-color);font-family:'Georgia',serif;">Favorites Comparison</h3>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <!-- Botón medidas (favorites) -->
+                <div style="position: relative;">
+                    <button id="fav-unit-toggle-btn" class="unit-toggle-btn" style="margin-top:0;">
+                        MEASUREMENTS
+                        <svg width="10" height="10" viewBox="0 0 10 10" style="margin-left: 8px; vertical-align: middle;">
+                            <line x1="2" y1="3" x2="5" y2="6" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="5" y1="6" x2="8" y2="3" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <div id="fav-unit-dropdown" class="unit-dropdown">
+                        <div class="unit-option" data-unit="in">INCHES (IN)</div>
+                        <div class="unit-option" data-unit="cm">CENTIMETERS (CM)</div>
+                        <div class="unit-option" data-unit="m">METERS (M)</div>
+                        <div class="unit-option" data-unit="ft">FEET (FT)</div>
+                        <div class="unit-option" data-unit="yd">YARDS (YD)</div>
+                        <div class="unit-option" data-unit="px">PIXELS (PX)</div>
+                    </div>
+                </div>
+                <span id="fav-comp-close" style="font-size:32px;cursor:pointer;color:var(--primary-color)">&times;</span>
+            </div>
+        </div>
+        <div id="fav-comparison-content" class="fav-comparison-content"></div>
+    </div>
+
     <div id="full-size-modal" class="modal">
         <span class="close-button">&times;</span>
         
         <div id="modal-scroll-wrapper">
             <div id="modal-visual-content">
                 <div id="modal-image-container"></div>
-                </div>
+            </div>
         </div>
 
     </div>
+
+    <!-- Footer: data source -->
+    <footer class="site-footer">
+        Data sourced from 
+        <a href="https://huggingface.co/datasets/RevolutionCrossroads/si_us_revolutionary_era_collections" target="_blank" rel="noopener noreferrer">
+            RevolutionCrossroads / SI US Revolutionary Era Collections
+        </a>
+    </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="script.js"></script>

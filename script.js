@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_DIMENSION_PX = 1200;  
     const MODAL_CM_SCALE = 37.8; // 1cm = 37.8px aprox
     const CM_TO_INCH = 0.393701;
+    const CM_TO_FEET = 0.0328084;
+    const CM_TO_YARD = 0.0109361;
+    const CM_TO_METER = 0.01; // 1cm = 0.01m
+    const CM_TO_PX = MODAL_CM_SCALE; // 1cm = 37.8px
     
     // Referencias (CM)
     const PERSON_HEIGHT_CM = 170; 
@@ -35,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allArtworkData = []; 
     let allGalleryItems = []; 
     let globalScaleFactor = 0; 
-    let isMetric = false; 
+    let currentUnit = 'in'; // unidad predeterminada: inches
 
     function dimensionCMToNumbers(dimText) {
         if (!dimText) return { heightCM: 0, widthCM: 0 };
@@ -56,17 +60,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function updateEditorialText() {
-        if (unitToggleBtn) {
-            unitToggleBtn.textContent = isMetric ? 'SWITCH TO INCHES (IN)' : 'SWITCH TO CENTIMETERS (CM)';
+    function formatDimension(heightCM, widthCM, unit) {
+        let h, w, unitLabel;
+        switch(unit) {
+            case 'in':
+                h = (heightCM * CM_TO_INCH).toFixed(1);
+                w = (widthCM * CM_TO_INCH).toFixed(1);
+                unitLabel = 'in';
+                break;
+            case 'ft':
+                h = (heightCM * CM_TO_FEET).toFixed(2);
+                w = (widthCM * CM_TO_FEET).toFixed(2);
+                unitLabel = 'ft';
+                break;
+            case 'yd':
+                h = (heightCM * CM_TO_YARD).toFixed(2);
+                w = (widthCM * CM_TO_YARD).toFixed(2);
+                unitLabel = 'yd';
+                break;
+            case 'm':
+                h = (heightCM * CM_TO_METER).toFixed(2);
+                w = (widthCM * CM_TO_METER).toFixed(2);
+                unitLabel = 'm';
+                break;
+            case 'px':
+                h = Math.round(heightCM * CM_TO_PX);
+                w = Math.round(widthCM * CM_TO_PX);
+                unitLabel = 'px';
+                break;
+            default: // cm
+                h = heightCM.toFixed(1);
+                w = widthCM.toFixed(1);
+                unitLabel = 'cm';
         }
+        return `${h} x ${w} ${unitLabel}`;
+    }
+
+    function updateEditorialText() {
         if (largestArtworkNameSpan && largestArtworkMeasureSpan) {
             largestArtworkNameSpan.textContent = 'Helen Brought to Paris';
-            largestArtworkMeasureSpan.textContent = isMetric ? '143.3 x 198.4 cm' : '56.4 x 78.1 in';
+            largestArtworkMeasureSpan.textContent = formatDimension(143.3, 198.4, currentUnit);
         }
         if (smallestArtworkNameSpan && smallestArtworkMeasureSpan) {
             smallestArtworkNameSpan.textContent = 'Eye of a Lady';
-            smallestArtworkMeasureSpan.textContent = isMetric ? '1.5 x 1.8 cm' : '0.6 x 0.7 in';
+            smallestArtworkMeasureSpan.textContent = formatDimension(1.5, 1.8, currentUnit);
         }
     }
 
@@ -82,9 +119,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (unitToggleBtn) {
-        unitToggleBtn.addEventListener('click', () => {
-            isMetric = !isMetric;
-            updateEditorialText();
+        const dropdown = document.getElementById('unit-dropdown');
+        
+        // Toggle dropdown al hacer clic en el botón
+        unitToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('show');
+        });
+
+        // Cerrar dropdown al hacer clic fuera
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('show');
+        });
+
+        // Manejar selección de opciones
+        dropdown.querySelectorAll('.unit-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Actualizar unidad activa visualmente
+                dropdown.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                
+                // Cambiar unidad actual
+                currentUnit = option.dataset.unit;
+                
+                // Actualizar texto del botón manteniendo el SVG
+                unitToggleBtn.innerHTML = `
+                    MEASUREMENTS
+                    <svg width="10" height="10" viewBox="0 0 10 10" style="margin-left: 8px; vertical-align: middle;">
+                        <line x1="2" y1="3" x2="5" y2="6" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="5" y1="6" x2="8" y2="3" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                `;
+                
+                // Actualizar todos los textos
+                updateEditorialText();
+                updateOpenModalUnits();
+                
+                // Cerrar dropdown
+                dropdown.classList.remove('show');
+            });
         });
     }
     
@@ -263,152 +338,548 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openModal(itemData) {
         if (!modal) return;
-        
         const { heightCM, widthCM } = dimensionCMToNumbers(itemData['DIMSENSIONS (CM)']);
-        
-        // 1. Determinar Referencia y Texto
         const isMiniature = itemData.TYPE && itemData.TYPE.toLowerCase().includes('miniature');
-        const refHeightCM = isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM;
-        const refLabelText = isMiniature ? "2.4 cm" : "170 cm"; // Tooltip text
         
-        const refSVG = isMiniature 
-            ? `<svg viewBox="0 0 100 100" style="width:100%; height:100%;"><circle cx="50" cy="50" r="48" fill="#e0e0e0" stroke="#999" stroke-width="2"/><text x="50" y="55" font-size="25" text-anchor="middle" fill="#777">25¢</text></svg>` 
-            : `<svg viewBox="0 0 100 300" preserveAspectRatio="xMidYMax meet" style="width:100%; height:100%;"><circle cx="50" cy="30" r="20" fill="#333"/><rect x="20" y="60" width="60" height="140" fill="#333"/><rect x="30" y="200" width="15" height="90" fill="#333"/><rect x="55" y="200" width="15" height="90" fill="#333"/></svg>`; 
+        modal.dataset.heightCm = heightCM;
+        modal.dataset.widthCm  = widthCM;
+        modal.dataset.isMiniature = isMiniature ? 'true' : 'false';
+
+        const refHeightCM = isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM;
+        const refSVGPath = isMiniature ? 'coin.svg' : 'person.svg';
+
+        function getRefLabelText() {
+            const refCM = isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM;
+            let refValue, refUnit;
+            switch(currentUnit) {
+                case 'in':
+                    refValue = (refCM * CM_TO_INCH).toFixed(2);
+                    refUnit = 'in';
+                    break;
+                case 'ft':
+                    refValue = (refCM * CM_TO_FEET).toFixed(2);
+                    refUnit = 'ft';
+                    break;
+                case 'yd':
+                    refValue = (refCM * CM_TO_YARD).toFixed(2);
+                    refUnit = 'yd';
+                    break;
+                case 'm':
+                    refValue = (refCM * CM_TO_METER).toFixed(2);
+                    refUnit = 'm';
+                    break;
+                case 'px':
+                    refValue = Math.round(refCM * CM_TO_PX);
+                    refUnit = 'px';
+                    break;
+                default:
+                    refValue = refCM.toFixed(2);
+                    refUnit = 'cm';
+            }
+            return `${refValue} ${refUnit}`;
+        }
 
         const imgContainer = document.getElementById('modal-image-container');
-        imgContainer.innerHTML = `<img id="modal-main-img" src="${itemData['MEDIA URL']}">`;
+        imgContainer.innerHTML = `<img id="modal-main-img" src="${itemData['MEDIA URL']}" alt="${itemData.NAME}">`;
         const mainImg = document.getElementById('modal-main-img');
 
-        // 2. Crear contenedor de referencia con etiqueta
         const refContainer = document.createElement('div');
-        refContainer.className = 'ref-object-container';
+        refContainer.className = 'ref-object-container ' + (isMiniature ? 'coin-ref' : 'person-ref');
         refContainer.innerHTML = `
-            <div class="ref-svg-wrapper" style="width: 100%; height: 100%; flex:1;">${refSVG}</div>
-            <div class="ref-label">${refLabelText}</div>
+            <div class="ref-svg-wrapper"><img src="${refSVGPath}" style="width:100%;height:100%;object-fit:contain;" alt="Reference object"></div>
+            <div class="ref-label">${getRefLabelText()}</div>
         `;
-        
-        // Limpiar referencias anteriores
-        const oldRefs = modalVisualContent.querySelectorAll('.ref-object-container');
-        oldRefs.forEach(el => el.remove());
-        
-        modalVisualContent.appendChild(refContainer); 
+        imgContainer.querySelectorAll('.ref-object-container').forEach(el => el.remove());
+        imgContainer.appendChild(refContainer);
 
-        // 3. Info Box
-        const existingInfo = modal.querySelector('.modal-info-container');
-        if (existingInfo) existingInfo.remove();
-
+        const oldInfo = modal.querySelector('.modal-info-container');
+        if (oldInfo) oldInfo.remove();
         const infoContainer = document.createElement('div');
         infoContainer.className = 'modal-info-container';
-        
-        const widthIn = (widthCM * CM_TO_INCH).toFixed(1);
-        const heightIn = (heightCM * CM_TO_INCH).toFixed(1);
-        const displayDim = isMetric 
-            ? `${heightCM.toFixed(1)} x ${widthCM.toFixed(1)} cm`
-            : `${heightIn} x ${widthIn} in`;
-
-        // Botón Scale oculto para miniaturas
-        const scaleBtnStyle = isMiniature ? 'display: none;' : '';
-
+        const displayDim = formatDimension(heightCM, widthCM, currentUnit);
         infoContainer.innerHTML = `
             <h3 class="modal-info-title">${itemData.NAME}</h3>
             <p class="modal-info-details">
-                ${itemData.DATE}<br>${itemData.TYPE}<br><strong>${displayDim}</strong>
+                ${itemData.DATE || ''}<br>${itemData.TYPE || ''}<br><strong id="modal-dims">${displayDim}</strong>
             </p>
+            <div style="position: relative; width: max-content; margin-top: 15px;">
+                <button id="modal-unit-toggle-btn" class="unit-toggle-btn" style="margin-top: 0;">
+                    MEASUREMENTS
+                    <svg width="10" height="10" viewBox="0 0 10 10" style="margin-left: 8px; vertical-align: middle;">
+                        <line x1="2" y1="3" x2="5" y2="6" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="5" y1="6" x2="8" y2="3" stroke="#0011ff" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <div id="modal-unit-dropdown" class="unit-dropdown">
+                    <div class="unit-option ${currentUnit === 'in' ? 'active' : ''}" data-unit="in">INCHES (IN)</div>
+                    <div class="unit-option ${currentUnit === 'cm' ? 'active' : ''}" data-unit="cm">CENTIMETERS (CM)</div>
+                    <div class="unit-option ${currentUnit === 'm' ? 'active' : ''}" data-unit="m">METERS (M)</div>
+                    <div class="unit-option ${currentUnit === 'ft' ? 'active' : ''}" data-unit="ft">FEET (FT)</div>
+                    <div class="unit-option ${currentUnit === 'yd' ? 'active' : ''}" data-unit="yd">YARDS (YD)</div>
+                    <div class="unit-option ${currentUnit === 'px' ? 'active' : ''}" data-unit="px">PIXELS (PX)</div>
+                </div>
+            </div>
             <div class="modal-controls">
                 <button id="btn-actual" class="modal-btn active">Actual Size</button>
-                <button id="btn-scale" class="modal-btn" style="${scaleBtnStyle}">Scale</button>
+                <button id="btn-scale" class="modal-btn">Scale</button>
                 <button id="btn-compare" class="modal-btn">Compare</button>
             </div>
             <div id="scale-feedback" class="scale-feedback">Scale: 100%</div>
         `;
-        modal.appendChild(infoContainer);
+        modal.appendChild(infoContainer); // Agregar a modal
+        
+        // Setup modal unit dropdown
+        const modalUnitBtn = document.getElementById('modal-unit-toggle-btn');
+        const modalUnitDropdown = document.getElementById('modal-unit-dropdown');
+        
+        modalUnitBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modalUnitDropdown.classList.toggle('show');
+        });
+        
+        modalUnitDropdown.querySelectorAll('.unit-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                modalUnitDropdown.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                currentUnit = option.dataset.unit;
+                updateOpenModalUnits();
+                modalUnitDropdown.classList.remove('show');
+            });
+        });
+        
+        let feedbackEl = document.getElementById('scale-feedback');
+        const svgWrapper = refContainer.querySelector('.ref-svg-wrapper');
+        let currentMode = 'actual';
+        let currentPxPerCm = MODAL_CM_SCALE;
+        let compareActive = false;
+        const PERSON_ASPECT = 3972.52 / 5052.87;
 
-        const feedbackEl = document.getElementById('scale-feedback');
+        function applyReferenceScale(pxPerCm) {
+            if (!compareActive) return;
+            const refHeightPx = (isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM) * pxPerCm;
+            const refWidthPx = isMiniature ? refHeightPx : refHeightPx * PERSON_ASPECT;
+            svgWrapper.style.height = `${refHeightPx}px`;
+            svgWrapper.style.width = `${refWidthPx}px`;
 
-        // 4. Lógica de Escalado Sincronizado
-        function setScale(mode) {
-            let finalScaleFactor = 1; // 1 = 100% Actual Size
-
-            if (mode === 'actual') {
-                // Escala "Real" basada en DPI promedio
-                finalScaleFactor = 1; // Lógica base es scale * MODAL_CM_SCALE
-                
-                const wPx = widthCM * MODAL_CM_SCALE;
-                const hPx = heightCM * MODAL_CM_SCALE;
-                const refHPx = refHeightCM * MODAL_CM_SCALE;
-
-                mainImg.style.width = `${wPx}px`;
-                mainImg.style.height = `${hPx}px`;
-                
-                // Referencia sigue a la imagen
-                refContainer.style.height = `${refHPx}px`;
-                refContainer.style.width = isMiniature ? `${refHPx}px` : `${refHPx * 0.3}px`; // Aspect ratio aprox
-
-                feedbackEl.textContent = "Scale: 100% (Actual Size)";
-
-            } else if (mode === 'fit') {
-                // Ajustar a la ventana (85%)
-                const winW = window.innerWidth * 0.85;
-                const winH = window.innerHeight * 0.85;
-                const scaleX = winW / widthCM;
-                const scaleY = winH / heightCM;
-                
-                // Pixeles por CM calculados para encajar
-                const fitPxPerCm = Math.min(scaleX, scaleY); 
-                
-                const wPx = widthCM * fitPxPerCm;
-                const hPx = heightCM * fitPxPerCm;
-                const refHPx = refHeightCM * fitPxPerCm;
-
-                mainImg.style.width = `${wPx}px`;
-                mainImg.style.height = `${hPx}px`;
-                
-                refContainer.style.height = `${refHPx}px`;
-                refContainer.style.width = isMiniature ? `${refHPx}px` : `${refHPx * 0.3}px`;
-
-                // Calcular porcentaje relativo al tamaño real
-                const percentage = Math.round((fitPxPerCm / MODAL_CM_SCALE) * 100);
-                feedbackEl.textContent = `Scale: ${percentage}% (Fit to Screen)`;
+            if (!isMiniature) {
+                // Painting compare: show person fixed & centered
+                if (!refContainer.dataset.fixed) {
+                    refContainer.style.position = 'fixed';
+                    refContainer.style.top = '50%';
+                    refContainer.style.left = '50%';
+                    refContainer.style.transform = 'translate(-50%, -50%)';
+                    refContainer.style.bottom = ''; // clear
+                    refContainer.style.zIndex = '105';
+                    refContainer.dataset.fixed = '1';
+                }
+            } else {
+                // Miniature compare: keep at bottom centered (original behavior)
+                refContainer.style.position = 'absolute';
+                refContainer.style.top = '';
+                refContainer.style.left = '50%';
+                refContainer.style.transform = 'translateX(-50%)';
+                refContainer.style.bottom = '10px';
+                refContainer.dataset.fixed = '';
             }
         }
+        function centerInViewport() {
+            const scrollWrapper = document.getElementById('modal-scroll-wrapper');
+            // Centrar verticalmente la imagen
+            const scrollTop = Math.max(0, (mainImg.offsetHeight - scrollWrapper.clientHeight) / 2);
+            scrollWrapper.scrollTo({ top: scrollTop, behavior: 'smooth' });
+        }
+        function computePixelsPerCm(mode) {
+            if (compareActive && !isMiniature) {
+                // Altura disponible descontando padding
+                const scrollWrapper = document.getElementById('modal-scroll-wrapper');
+                const styles = window.getComputedStyle(scrollWrapper);
+                const padTop = parseFloat(styles.paddingTop) || 0;
+                const padBottom = parseFloat(styles.paddingBottom) || 0;
+                const availableH = window.innerHeight - padTop - padBottom;
 
-        // Estado Inicial
+                // Escala base (persona = 85% de altura disponible)
+                let basePxPerCm = (availableH * 0.85) / PERSON_HEIGHT_CM;
+
+                // Limitar para que pintura y persona quepan completas
+                const limitByPainting = (availableH - 20) / heightCM;
+                const limitByPerson   = (availableH - 20) / PERSON_HEIGHT_CM;
+                return Math.min(basePxPerCm, limitByPainting, limitByPerson);
+            }
+            if (mode === 'actual') return MODAL_CM_SCALE;
+            const winW = window.innerWidth * 0.85;
+            const winH = window.innerHeight * 0.85;
+            return Math.min(winW / widthCM, winH / heightCM);
+        }
+
+        function setScale(mode) {
+            currentMode = mode;
+            currentPxPerCm = computePixelsPerCm(mode);
+            const wPx = widthCM * currentPxPerCm;
+            const hPx = heightCM * currentPxPerCm;
+            
+            mainImg.style.width = `${wPx}px`;
+            mainImg.style.height = `${hPx}px`;
+            
+            const visualContent = document.getElementById('modal-visual-content');
+            if (visualContent) {
+                visualContent.style.width = `${wPx}px`;
+                visualContent.style.height = `${hPx}px`;
+            }
+            
+            if (feedbackEl) {
+                if (compareActive && !isMiniature) {
+                    const relativePct = Math.round((currentPxPerCm / MODAL_CM_SCALE) * 100);
+                    feedbackEl.textContent = `Scale: Person reference (adjusted, ${relativePct}%)`;
+                } else if (mode === 'actual') {
+                    feedbackEl.textContent = 'Scale: 100% (Actual Size)';
+                } else {
+                    const pct = Math.round((currentPxPerCm / MODAL_CM_SCALE) * 100);
+                    feedbackEl.textContent = `Scale: ${pct}% (Fit to Screen)`;
+                }
+            }
+            
+            applyReferenceScale(currentPxPerCm);
+            
+            // Scroll behavior mejorado
+            const scrollWrapper = document.getElementById('modal-scroll-wrapper');
+            setTimeout(() => {
+                // Siempre scroll al inicio para ver desde arriba
+                scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 100);
+        }
+
         setScale('actual');
 
         const btnActual = document.getElementById('btn-actual');
-        const btnScale = document.getElementById('btn-scale');
+        const btnScale  = document.getElementById('btn-scale');
         const btnCompare = document.getElementById('btn-compare');
 
-        btnActual.addEventListener('click', () => {
+        btnActual.onclick = () => {
             btnActual.classList.add('active');
-            if(btnScale) btnScale.classList.remove('active');
+            btnScale.classList.remove('active');
             setScale('actual');
+        };
+        btnScale.onclick = () => {
+            btnScale.classList.add('active');
+            btnActual.classList.remove('active');
+            setScale('fit');
+        };
+        btnCompare.onclick = () => {
+            compareActive = !compareActive;
+            refContainer.classList.toggle('visible', compareActive);
+            
+            // Toggle active state del botón
+            if (compareActive) {
+                btnCompare.classList.add('active');
+            } else {
+                btnCompare.classList.remove('active');
+                // Restore default positioning
+                refContainer.style.position = 'absolute';
+                refContainer.style.bottom = '10px';
+                refContainer.style.top = '';
+                refContainer.style.left = '50%';
+                refContainer.style.transform = 'translateX(-50%)';
+                refContainer.dataset.fixed = '';
+            }
+            setScale(currentMode);
+        };
+
+        window.addEventListener('resize', () => {
+            if (modal.style.display === 'flex') {
+                setScale(currentMode);
+            }
         });
 
-        if(btnScale) {
-            btnScale.addEventListener('click', () => {
-                btnScale.classList.add('active');
-                btnActual.classList.remove('active');
-                setScale('fit');
-            });
-        }
-
-        btnCompare.addEventListener('click', () => {
-            btnCompare.classList.toggle('active');
-            refContainer.classList.toggle('visible');
-        });
-
-        modal.style.display = 'flex'; // Flex para centrar
-        
+        modal.style.display = 'flex';
         const closeButton = modal.querySelector('.close-button');
         closeButton.onclick = () => { modal.style.display = 'none'; };
-        modal.onclick = (e) => { 
-            // Cerrar solo si clic en el fondo oscuro (modal), no en el contenido
-            if (e.target === modal || e.target.id === 'modal-scroll-wrapper') { 
-                modal.style.display = 'none'; 
-            } 
+        modal.onclick = (e) => {
+            if (e.target === modal || e.target.id === 'modal-scroll-wrapper') modal.style.display = 'none';
         };
     }
+
+    function updateOpenModalUnits() {
+        if (!modal || modal.style.display !== 'flex') return;
+        const dimsSpan = modal.querySelector('#modal-dims');
+        const refLabel = modal.querySelector('.ref-object-container .ref-label');
+        const heightCM = parseFloat(modal.dataset.heightCm || '0');
+        const widthCM  = parseFloat(modal.dataset.widthCm || '0');
+        const isMiniature = modal.dataset.isMiniature === 'true';
+
+        if (dimsSpan) {
+            dimsSpan.textContent = formatDimension(heightCM, widthCM, currentUnit);
+        }
+        if (refLabel) {
+            const refCM = isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM;
+            let refValue, refUnit;
+            switch(currentUnit) {
+                case 'in':
+                    refValue = (refCM * CM_TO_INCH).toFixed(2);
+                    refUnit = 'in';
+                    break;
+                case 'ft':
+                    refValue = (refCM * CM_TO_FEET).toFixed(2);
+                    refUnit = 'ft';
+                    break;
+                case 'yd':
+                    refValue = (refCM * CM_TO_YARD).toFixed(2);
+                    refUnit = 'yd';
+                    break;
+                case 'm':
+                    refValue = (refCM * CM_TO_METER).toFixed(2);
+                    refUnit = 'm';
+                    break;
+                case 'px':
+                    refValue = Math.round(refCM * CM_TO_PX);
+                    refUnit = 'px';
+                    break;
+                default:
+                    refValue = refCM.toFixed(2);
+                    refUnit = 'cm';
+            }
+            refLabel.textContent = `${refValue} ${refUnit}`;
+        }
+    }
+
+    const favoritesContainer = document.getElementById('favorites-container');
+    const favCompareBar = document.getElementById('favorites-compare-bar');
+    const favSelectedCount = document.getElementById('fav-selected-count');
+    const favCompareViewBtn = document.getElementById('fav-compare-view');
+    const favComparisonModal = document.getElementById('fav-comparison-modal');
+    const favComparisonContent = document.getElementById('fav-comparison-content');
+    const favCompClose = document.getElementById('fav-comp-close');
+    const favUnselectBtn = document.getElementById('fav-unselect');
+
+    let favorites = new Set(JSON.parse(localStorage.getItem('art.scale.favorites') || '[]'));
+    let favSelection = new Set(); // IDs seleccionados para comparar (max 3)
+
+    function artworkId(item) {
+        // ID estable a partir del nombre + fecha + media URL
+        return `${item.NAME || ''}__${item.DATE || ''}__${item['MEDIA URL'] || ''}`;
+    }
+
+    function saveFavorites() {
+        localStorage.setItem('art.scale.favorites', JSON.stringify(Array.from(favorites)));
+    }
+
+    function addFavoritesFilterButton(decadesArray) {
+        if (!filterControls) return;
+        const favBtn = document.createElement('button');
+        favBtn.className = 'filter-button';
+        favBtn.textContent = 'FAVORITES';
+        favBtn.dataset.decade = 'FAVORITES';
+        favBtn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active-filter'));
+            favBtn.classList.add('active-filter');
+            showFavoritesGrid();
+        });
+        filterControls.appendChild(favBtn);
+    }
+
+    function showFavoritesGrid() {
+        if (!favoritesContainer || !galleryContainer) return;
+        // Ocultar grilla principal, mostrar favoritos
+        galleryContainer.style.display = 'none';
+        favoritesContainer.style.display = 'grid';
+        favoritesContainer.innerHTML = '';
+
+        favSelection.clear();
+        updateFavSelectionUI();
+
+        // Buscar data de favoritos en allArtworkData
+        const favItems = allArtworkData.filter(item => favorites.has(artworkId(item)));
+        favItems.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'fav-item';
+            card.innerHTML = `
+                <img class="fav-thumb" src="${item['MEDIA URL']}" alt="${item.NAME}">
+                <div class="fav-select">
+                    <input type="checkbox" class="fav-checkbox">
+                    <span>${item.NAME || 'Untitled'}</span>
+                </div>
+            `;
+            const checkbox = card.querySelector('.fav-checkbox');
+            checkbox.addEventListener('change', () => {
+                const id = artworkId(item);
+                if (checkbox.checked) {
+                    if (favSelection.size >= 3) {
+                        checkbox.checked = false;
+                        alert('You can select up to 3 artworks.');
+                        return;
+                    }
+                    favSelection.add(id);
+                } else {
+                    favSelection.delete(id);
+                }
+                updateFavSelectionUI();
+            });
+            favoritesContainer.appendChild(card);
+        });
+        // Keep bar state in sync after rendering
+        updateFavSelectionUI();
+    }
+
+    function updateFavSelectionUI() {
+        favSelectedCount.textContent = `Selected: ${favSelection.size}`;
+        favCompareViewBtn.disabled = favSelection.size < 2;
+        if (favSelection.size > 0) {
+            favCompareBar.classList.add('active');
+        } else {
+            favCompareBar.classList.remove('active');
+        }
+    }
+
+    function clearFavSelections() {
+        // Uncheck all checkboxes currently rendered in favorites grid
+        favoritesContainer.querySelectorAll('.fav-checkbox').forEach(cb => { cb.checked = false; });
+        // Reset selection set
+        favSelection.clear();
+        // Update bar UI
+        updateFavSelectionUI();
+    }
+
+    if (favUnselectBtn) {
+        favUnselectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearFavSelections();
+        });
+    }
+
+    function openFavoritesComparison() {
+        if (favSelection.size < 2) return;
+        favComparisonModal.classList.add('active');
+        favComparisonContent.innerHTML = '';
+
+        const selectedItems = allArtworkData.filter(item => favSelection.has(artworkId(item)));
+        // Escala relativa: quepa la obra más grande
+        let maxDim = 0;
+        selectedItems.forEach(item => {
+            const { heightCM, widthCM } = dimensionCMToNumbers(item['DIMSENSIONS (CM)']);
+            maxDim = Math.max(maxDim, heightCM, widthCM);
+        });
+        const maxDisplayH = Math.min(window.innerHeight * 0.6, 700);
+        const cmPerPx = (maxDisplayH / maxDim) * 0.8; // factor visual
+
+        selectedItems.forEach(item => {
+            const { heightCM, widthCM } = dimensionCMToNumbers(item['DIMSENSIONS (CM)']);
+            const dimsText = formatDimension(heightCM, widthCM, currentUnit);
+            const hPx = Math.max(1, heightCM * cmPerPx);
+            const wPx = Math.max(1, widthCM * cmPerPx);
+            const side = document.createElement('div');
+            side.className = 'fav-comp-side';
+            side.dataset.heightCm = heightCM; // guardar para actualización
+            side.dataset.widthCm = widthCM;   // guardar para actualización
+            side.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <img class="comp-img" src="${item['MEDIA URL']}" alt="${item.NAME}" style="width:${wPx}px;height:${hPx}px;object-fit:contain;">
+                    <div class="fav-comp-meta" style="margin-top:10px;text-align:center;font-family:'Inter',sans-serif;color:var(--secondary-color);font-size:0.85rem;">
+                        <div style="color:var(--primary-color);font-weight:700">${item.NAME || 'Untitled'}</div>
+                        <div>${item.DATE || ''} • ${item.TYPE || ''}</div>
+                        <div class="fav-comp-dims">${dimsText}</div>
+                    </div>
+                </div>
+            `;
+            favComparisonContent.appendChild(side);
+        });
+
+        // Setup de medidas (toggle) en favorites
+        const favUnitBtn = document.getElementById('fav-unit-toggle-btn');
+        const favUnitDropdown = document.getElementById('fav-unit-dropdown');
+        if (favUnitBtn && favUnitDropdown) {
+            // Set active visual
+            favUnitDropdown.querySelectorAll('.unit-option').forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.unit === currentUnit);
+            });
+            favUnitBtn.onclick = (e) => {
+                e.stopPropagation();
+                favUnitDropdown.classList.toggle('show');
+            };
+            document.addEventListener('click', () => favUnitDropdown.classList.remove('show'), { once: true });
+            favUnitDropdown.querySelectorAll('.unit-option').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    favUnitDropdown.querySelectorAll('.unit-option').forEach(o => o.classList.remove('active'));
+                    opt.classList.add('active');
+                    currentUnit = opt.dataset.unit;
+                    // actualizar textos de dimensiones
+                    favComparisonContent.querySelectorAll('.fav-comp-side').forEach(side => {
+                        const h = parseFloat(side.dataset.heightCm || '0');
+                        const w = parseFloat(side.dataset.widthCm || '0');
+                        const dimEl = side.querySelector('.fav-comp-dims');
+                        if (dimEl) dimEl.textContent = formatDimension(h, w, currentUnit);
+                    });
+                    favUnitDropdown.classList.remove('show');
+                });
+            });
+        }
+    }
+
+    if (favCompareViewBtn) favCompareViewBtn.addEventListener('click', openFavoritesComparison);
+    if (favCompClose) favCompClose.addEventListener('click', () => {
+        favComparisonModal.classList.remove('active');
+    });
+    if (favComparisonModal) {
+        favComparisonModal.addEventListener('click', (e) => {
+            if (e.target === favComparisonModal) favComparisonModal.classList.remove('active');
+        });
+    }
+
+    // Inyección estrella en el modal, sin quitar nada
+    function injectStarToggle(infoContainer, itemData) {
+        const controls = infoContainer.querySelector('.modal-controls');
+        if (!controls) return;
+        const id = artworkId(itemData);
+
+        const starBtn = document.createElement('button');
+        starBtn.className = 'modal-star-toggle';
+        starBtn.type = 'button';
+        starBtn.innerHTML = `
+            <span class="modal-star-icon ${favorites.has(id) ? 'filled' : ''}" aria-label="Toggle favorite">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212.83 198.6" width="18" height="18">
+                  <polygon points="85.49 78.92 107.2 12.05 129.4 78.92 200.25 78.92 143.12 120.81 164.82 187.69 107.61 146.88 50.32 187.7 71.77 120.81 15.14 78.92 85.49 78.92"/>
+                </svg>
+            </span>
+        `;
+        starBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (favorites.has(id)) {
+                favorites.delete(id);
+            } else {
+                favorites.add(id);
+            }
+            saveFavorites();
+            const icon = starBtn.querySelector('.modal-star-icon');
+            icon.classList.toggle('filled', favorites.has(id));
+        });
+        controls.appendChild(starBtn);
+    }
+
+    // Hook: al abrir modal, agregar estrella
+    const originalOpenModal = openModal;
+    openModal = function(itemData) {
+        originalOpenModal(itemData);
+        const infoContainer = modal.querySelector('.modal-info-container');
+        if (infoContainer) injectStarToggle(infoContainer, itemData);
+    };
+
+    // Mantener filtros visibles y agregar FAVORITES al final
+    const originalInitFilters = initFilterControls;
+    initFilterControls = function(decadesArray) {
+        originalInitFilters(decadesArray);
+        addFavoritesFilterButton(decadesArray);
+    };
+
+    // Mantener comportamiento al cambiar filtros (volver de favorites a grilla principal)
+    const originalFilterGallery = filterGallery;
+    filterGallery = function(decade) {
+        // Si eligen cualquier década o ALL, ocultar favoritos y mostrar grilla normal
+        if (favoritesContainer && galleryContainer) {
+            favoritesContainer.style.display = 'none';
+            galleryContainer.style.display = 'block';
+        }
+        originalFilterGallery(decade);
+    };
 
     Papa.parse(csvFilePath, {
         download: true,
