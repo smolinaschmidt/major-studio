@@ -392,17 +392,50 @@ body {
     display: flex;
     align-items: flex-end;
     justify-content: center;
+    position: relative; /* allow hover label positioning */
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tooltip/Etiqueta de medida */
+/* Hover-only label that appears over the reference object */
+.ref-label-hover {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: var(--primary-color);
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 6px 10px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.ref-svg-wrapper:hover .ref-label-hover {
+    opacity: 1;
+}
+
+/* Permanent reference dimension in info box */
+.modal-info-reference {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin: 10px 0 0 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--secondary-color);
+    font-weight: 600;
+}
+
+/* Remove old floating label (no longer used) */
 .ref-label {
-    font-family: 'Inter', sans-serif; font-size: 0.75rem; 
-    color: var(--primary-color); margin-top: 8px; font-weight: 700; text-align: center;
-    white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 4px 8px;
-    border-radius: 3px;
+    display: none;
 }
 
 .modal-info-container {

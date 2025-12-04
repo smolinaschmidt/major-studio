@@ -386,8 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const refContainer = document.createElement('div');
         refContainer.className = 'ref-object-container ' + (isMiniature ? 'coin-ref' : 'person-ref');
         refContainer.innerHTML = `
-            <div class="ref-svg-wrapper"><img src="${refSVGPath}" style="width:100%;height:100%;object-fit:contain;" alt="Reference object"></div>
-            <div class="ref-label">${getRefLabelText()}</div>
+            <div class="ref-svg-wrapper">
+                <img src="${refSVGPath}" style="width:100%;height:100%;object-fit:contain;" alt="Reference object">
+                <div class="ref-label-hover">${getRefLabelText()}</div>
+            </div>
         `;
         imgContainer.querySelectorAll('.ref-object-container').forEach(el => el.remove());
         imgContainer.appendChild(refContainer);
@@ -401,6 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3 class="modal-info-title">${itemData.NAME}</h3>
             <p class="modal-info-details">
                 ${itemData.DATE || ''}<br>${itemData.TYPE || ''}<br><strong id="modal-dims">${displayDim}</strong>
+            </p>
+            <p class="modal-info-reference" id="modal-ref-dims" style="display:none;">
+                Reference: ${getRefLabelText()}
             </p>
             <div style="position: relative; width: max-content; margin-top: 15px;">
                 <button id="modal-unit-toggle-btn" class="unit-toggle-btn" style="margin-top: 0;">
@@ -458,31 +463,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const PERSON_ASPECT = 3972.52 / 5052.87;
 
         function applyReferenceScale(pxPerCm) {
-            if (!compareActive) return;
+            const refDimsSpan = document.getElementById('modal-ref-dims');
+            // Show references only when compare is active
+            if (!compareActive) {
+                refContainer.classList.remove('visible');
+                if (refDimsSpan) refDimsSpan.style.display = 'none';
+                return;
+            }
+            refContainer.classList.add('visible');
+            if (refDimsSpan) refDimsSpan.style.display = 'block';
+            
             const refHeightPx = (isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM) * pxPerCm;
             const refWidthPx = isMiniature ? refHeightPx : refHeightPx * PERSON_ASPECT;
             svgWrapper.style.height = `${refHeightPx}px`;
             svgWrapper.style.width = `${refWidthPx}px`;
 
             if (!isMiniature) {
-                // Painting compare: show person fixed & centered
-                if (!refContainer.dataset.fixed) {
-                    refContainer.style.position = 'fixed';
-                    refContainer.style.top = '50%';
-                    refContainer.style.left = '50%';
-                    refContainer.style.transform = 'translate(-50%, -50%)';
-                    refContainer.style.bottom = ''; // clear
-                    refContainer.style.zIndex = '105';
-                    refContainer.dataset.fixed = '1';
-                }
-            } else {
-                // Miniature compare: keep at bottom centered (original behavior)
-                refContainer.style.position = 'absolute';
-                refContainer.style.top = '';
+                // Painting: person fixed & centered
+                refContainer.style.position = 'fixed';
+                refContainer.style.top = '50%';
                 refContainer.style.left = '50%';
-                refContainer.style.transform = 'translateX(-50%)';
-                refContainer.style.bottom = '10px';
-                refContainer.dataset.fixed = '';
+                refContainer.style.transform = 'translate(-50%, -50%)';
+                refContainer.style.bottom = '';
+                refContainer.style.zIndex = '105';
+            } else {
+                // Miniature: coin centered within the artwork (not at bottom)
+                refContainer.style.position = 'absolute';
+                refContainer.style.top = '50%';
+                refContainer.style.left = '50%';
+                refContainer.style.transform = 'translate(-50%, -50%)';
+                refContainer.style.bottom = '';
             }
         }
         function centerInViewport() {
@@ -573,20 +583,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         btnCompare.onclick = () => {
             compareActive = !compareActive;
-            refContainer.classList.toggle('visible', compareActive);
+            btnCompare.classList.toggle('active', compareActive);
             
-            // Toggle active state del botón
-            if (compareActive) {
-                btnCompare.classList.add('active');
-            } else {
-                btnCompare.classList.remove('active');
-                // Restore default positioning
+            if (!compareActive) {
+                // Restore default positioning when hiding
                 refContainer.style.position = 'absolute';
                 refContainer.style.bottom = '10px';
                 refContainer.style.top = '';
                 refContainer.style.left = '50%';
                 refContainer.style.transform = 'translateX(-50%)';
-                refContainer.dataset.fixed = '';
             }
             setScale(currentMode);
         };
@@ -599,16 +604,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modal.style.display = 'flex';
         const closeButton = modal.querySelector('.close-button');
-        closeButton.onclick = () => { modal.style.display = 'none'; };
-        modal.onclick = (e) => {
-            if (e.target === modal || e.target.id === 'modal-scroll-wrapper') modal.style.display = 'none';
+        
+        // Close on button click
+        closeButton.onclick = () => { 
+            modal.style.display = 'none'; 
         };
+        
+        // Close on background click
+        modal.onclick = (e) => {
+            if (e.target === modal || e.target.id === 'modal-scroll-wrapper') {
+                modal.style.display = 'none';
+            }
+        };
+        
+        // Close on Escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                modal.style.display = 'none';
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
     }
 
     function updateOpenModalUnits() {
         if (!modal || modal.style.display !== 'flex') return;
         const dimsSpan = modal.querySelector('#modal-dims');
-        const refLabel = modal.querySelector('.ref-object-container .ref-label');
+        const refDimsSpan = modal.querySelector('#modal-ref-dims');
+        const refLabelHover = modal.querySelector('.ref-label-hover');
         const heightCM = parseFloat(modal.dataset.heightCm || '0');
         const widthCM  = parseFloat(modal.dataset.widthCm || '0');
         const isMiniature = modal.dataset.isMiniature === 'true';
@@ -616,35 +639,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dimsSpan) {
             dimsSpan.textContent = formatDimension(heightCM, widthCM, currentUnit);
         }
-        if (refLabel) {
-            const refCM = isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM;
-            let refValue, refUnit;
-            switch(currentUnit) {
-                case 'in':
-                    refValue = (refCM * CM_TO_INCH).toFixed(2);
-                    refUnit = 'in';
-                    break;
-                case 'ft':
-                    refValue = (refCM * CM_TO_FEET).toFixed(2);
-                    refUnit = 'ft';
-                    break;
-                case 'yd':
-                    refValue = (refCM * CM_TO_YARD).toFixed(2);
-                    refUnit = 'yd';
-                    break;
-                case 'm':
-                    refValue = (refCM * CM_TO_METER).toFixed(2);
-                    refUnit = 'm';
-                    break;
-                case 'px':
-                    refValue = Math.round(refCM * CM_TO_PX);
-                    refUnit = 'px';
-                    break;
-                default:
-                    refValue = refCM.toFixed(2);
-                    refUnit = 'cm';
-            }
-            refLabel.textContent = `${refValue} ${refUnit}`;
+        
+        const refCM = isMiniature ? COIN_DIAMETER_CM : PERSON_HEIGHT_CM;
+        let refValue, refUnit;
+        switch(currentUnit) {
+            case 'in':
+                refValue = (refCM * CM_TO_INCH).toFixed(2);
+                refUnit = 'in';
+                break;
+            case 'ft':
+                refValue = (refCM * CM_TO_FEET).toFixed(2);
+                refUnit = 'ft';
+                break;
+            case 'yd':
+                refValue = (refCM * CM_TO_YARD).toFixed(2);
+                refUnit = 'yd';
+                break;
+            case 'm':
+                refValue = (refCM * CM_TO_METER).toFixed(2);
+                refUnit = 'm';
+                break;
+            case 'px':
+                refValue = Math.round(refCM * CM_TO_PX);
+                refUnit = 'px';
+                break;
+            default:
+                refValue = refCM.toFixed(2);
+                refUnit = 'cm';
+        }
+        const refText = `${refValue} ${refUnit}`;
+        
+        if (refDimsSpan) {
+            refDimsSpan.textContent = `Reference: ${refText}`;
+        }
+        if (refLabelHover) {
+            refLabelHover.textContent = refText;
         }
     }
 
