@@ -137,14 +137,14 @@ document.addEventListener('DOMContentLoaded', () => {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
                 
-                // Actualizar unidad activa visualmente
+
                 dropdown.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
                 option.classList.add('active');
                 
-                // Cambiar unidad actual
+
                 currentUnit = option.dataset.unit;
                 
-                // Actualizar texto del botón manteniendo el SVG
+
                 unitToggleBtn.innerHTML = `
                     MEASUREMENTS
                     <svg width="10" height="10" viewBox="0 0 10 10" style="margin-left: 8px; vertical-align: middle;">
@@ -153,11 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </svg>
                 `;
                 
-                // Actualizar todos los textos
+
                 updateEditorialText();
                 updateOpenModalUnits();
                 
-                // Cerrar dropdown
+
                 dropdown.classList.remove('show');
             });
         });
@@ -431,9 +431,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div id="scale-feedback" class="scale-feedback">Scale: 100%</div>
         `;
-        modal.appendChild(infoContainer); // Agregar a modal
+        modal.appendChild(infoContainer); 
         
-        // Setup modal unit dropdown
+
         const modalUnitBtn = document.getElementById('modal-unit-toggle-btn');
         const modalUnitDropdown = document.getElementById('modal-unit-dropdown');
         modalUnitDropdown.style.height = '100px'; 
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function applyReferenceScale(pxPerCm) {
             const refDimsSpan = document.getElementById('modal-ref-dims');
-            // Show references only when compare is active
+
             if (!compareActive) {
                 refContainer.classList.remove('visible');
                 if (refDimsSpan) refDimsSpan.style.display = 'none';
@@ -479,7 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
             svgWrapper.style.width = `${refWidthPx}px`;
 
             if (!isMiniature) {
-                // Painting: person fixed & centered
                 refContainer.style.position = 'fixed';
                 refContainer.style.top = '50%';
                 refContainer.style.left = '50%';
@@ -487,7 +486,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 refContainer.style.bottom = '';
                 refContainer.style.zIndex = '105';
             } else {
-                // Miniature: coin centered within the artwork (not at bottom)
                 refContainer.style.position = 'absolute';
                 refContainer.style.top = '50%';
                 refContainer.style.left = '50%';
@@ -497,23 +495,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         function centerInViewport() {
             const scrollWrapper = document.getElementById('modal-scroll-wrapper');
-            // Centrar verticalmente la imagen
             const scrollTop = Math.max(0, (mainImg.offsetHeight - scrollWrapper.clientHeight) / 2);
             scrollWrapper.scrollTo({ top: scrollTop, behavior: 'smooth' });
         }
         function computePixelsPerCm(mode) {
             if (compareActive && !isMiniature) {
-                // Altura disponible descontando padding
+
                 const scrollWrapper = document.getElementById('modal-scroll-wrapper');
                 const styles = window.getComputedStyle(scrollWrapper);
                 const padTop = parseFloat(styles.paddingTop) || 0;
                 const padBottom = parseFloat(styles.paddingBottom) || 0;
                 const availableH = window.innerHeight - padTop - padBottom;
 
-                // Escala base (persona = 85% de altura disponible)
+
                 let basePxPerCm = (availableH * 0.85) / PERSON_HEIGHT_CM;
 
-                // Limitar para que pintura y persona quepan completas
+
                 const limitByPainting = (availableH - 20) / heightCM;
                 const limitByPerson   = (availableH - 20) / PERSON_HEIGHT_CM;
                 return Math.min(basePxPerCm, limitByPainting, limitByPerson);
@@ -531,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const hPx = heightCM * currentPxPerCm;
 
             const scrollWrapper = document.getElementById('modal-scroll-wrapper');
-            // Center in Scale mode; top-align in Actual Size for full scroll
+
             if (scrollWrapper) {
                 scrollWrapper.classList.toggle('fit-center', mode !== 'actual');
             }
@@ -559,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             applyReferenceScale(currentPxPerCm);
 
-            // Keep initial scroll at top; users can scroll freely in Actual Size
+
             setTimeout(() => {
                 if (scrollWrapper) scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
             }, 100);
@@ -586,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnCompare.classList.toggle('active', compareActive);
             
             if (!compareActive) {
-                // Restore default positioning when hiding
+
                 refContainer.style.position = 'absolute';
                 refContainer.style.bottom = '10px';
                 refContainer.style.top = '';
@@ -605,19 +602,19 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = 'flex';
         const closeButton = modal.querySelector('.close-button');
         
-        // Close on button click
+
         closeButton.onclick = () => { 
             modal.style.display = 'none'; 
         };
         
-        // Close on background click
+
         modal.onclick = (e) => {
             if (e.target === modal || e.target.id === 'modal-scroll-wrapper') {
                 modal.style.display = 'none';
             }
         };
         
-        // Close on Escape key
+
         const handleEscape = (e) => {
             if (e.key === 'Escape' && modal.style.display === 'flex') {
                 modal.style.display = 'none';
@@ -687,10 +684,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const favUnselectBtn = document.getElementById('fav-unselect');
 
     let favorites = new Set(JSON.parse(localStorage.getItem('art.scale.favorites') || '[]'));
-    let favSelection = new Set(); // IDs seleccionados para comparar (max 3)
+    let favSelection = new Set(); 
 
     function artworkId(item) {
-        // ID estable a partir del nombre + fecha + media URL
+
         return `${item.NAME || ''}__${item.DATE || ''}__${item['MEDIA URL'] || ''}`;
     }
 
@@ -701,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addFavoritesFilterButton(/* decadesArray */) {
         if (!filterControls) return;
 
-        // Avoid duplicates
+
         let favBtn = filterControls.querySelector('button[data-decade="FAVORITES"]');
         if (!favBtn) {
             favBtn = document.createElement('button');
@@ -723,15 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Insert before ALL (far left)
+
         const allBtn = filterControls.querySelector('button[data-decade="ALL"]');
         if (allBtn) {
             if (favBtn.previousElementSibling !== allBtn) {
                 filterControls.insertBefore(favBtn, allBtn);
             } else {
-                filterControls.insertBefore(favBtn, allBtn); // ensure it's before ALL
+                filterControls.insertBefore(favBtn, allBtn); 
             }
-            // Keep ALL active at start
+
             document.querySelectorAll('.filter-button').forEach(b => b.classList.remove('active-filter'));
             allBtn.classList.add('active-filter');
             if (favoritesContainer && galleryContainer) {
@@ -739,14 +736,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 galleryContainer.style.display = 'block';
             }
         } else {
-            // Fallback: prepend if ALL not found
+
             filterControls.prepend(favBtn);
         }
     }
 
     function showFavoritesGrid() {
         if (!favoritesContainer || !galleryContainer) return;
-        // Ocultar grilla principal, mostrar favoritos
+
         galleryContainer.style.display = 'none';
         favoritesContainer.style.display = 'grid';
         favoritesContainer.innerHTML = '';
@@ -754,7 +751,6 @@ document.addEventListener('DOMContentLoaded', () => {
         favSelection.clear();
         updateFavSelectionUI();
 
-        // Buscar data de favoritos en allArtworkData
         const favItems = allArtworkData.filter(item => favorites.has(artworkId(item)));
         favItems.forEach(item => {
             const card = document.createElement('div');
@@ -783,7 +779,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             favoritesContainer.appendChild(card);
         });
-        // Keep bar state in sync after rendering
         updateFavSelectionUI();
     }
 
@@ -798,11 +793,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearFavSelections() {
-        // Uncheck all checkboxes currently rendered in favorites grid
         favoritesContainer.querySelectorAll('.fav-checkbox').forEach(cb => { cb.checked = false; });
-        // Reset selection set
         favSelection.clear();
-        // Update bar UI
         updateFavSelectionUI();
     }
 
@@ -819,7 +811,6 @@ document.addEventListener('DOMContentLoaded', () => {
         favComparisonContent.innerHTML = '';
 
         const selectedItems = allArtworkData.filter(item => favSelection.has(artworkId(item)));
-        // Escala relativa: quepa la obra más grande
         let maxDim = 0;
         selectedItems.forEach(item => {
             const { heightCM, widthCM } = dimensionCMToNumbers(item['DIMSENSIONS (CM)']);
@@ -835,8 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const wPx = Math.max(1, widthCM * cmPerPx);
             const side = document.createElement('div');
             side.className = 'fav-comp-side';
-            side.dataset.heightCm = heightCM; // guardar para actualización
-            side.dataset.widthCm = widthCM;   // guardar para actualización
+            side.dataset.heightCm = heightCM; 
+            side.dataset.widthCm = widthCM;   
             side.innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;">
                     <img class="comp-img" src="${item['MEDIA URL']}" alt="${item.NAME}" style="width:${wPx}px;height:${hPx}px;object-fit:contain;">
@@ -850,11 +841,9 @@ document.addEventListener('DOMContentLoaded', () => {
             favComparisonContent.appendChild(side);
         });
 
-        // Setup de medidas (toggle) en favorites
         const favUnitBtn = document.getElementById('fav-unit-toggle-btn');
         const favUnitDropdown = document.getElementById('fav-unit-dropdown');
         if (favUnitBtn && favUnitDropdown) {
-            // Set active visual
             favUnitDropdown.querySelectorAll('.unit-option').forEach(opt => {
                 opt.classList.toggle('active', opt.dataset.unit === currentUnit);
             });
@@ -869,7 +858,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     favUnitDropdown.querySelectorAll('.unit-option').forEach(o => o.classList.remove('active'));
                     opt.classList.add('active');
                     currentUnit = opt.dataset.unit;
-                    // actualizar textos de dimensiones
                     favComparisonContent.querySelectorAll('.fav-comp-side').forEach(side => {
                         const h = parseFloat(side.dataset.heightCm || '0');
                         const w = parseFloat(side.dataset.widthCm || '0');
@@ -892,7 +880,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Inyección estrella en el modal, sin quitar nada
     function injectStarToggle(infoContainer, itemData) {
         const controls = infoContainer.querySelector('.modal-controls');
         if (!controls) return;
@@ -922,7 +909,6 @@ document.addEventListener('DOMContentLoaded', () => {
         controls.appendChild(starBtn);
     }
 
-    // Hook: al abrir modal, agregar estrella
     const originalOpenModal = openModal;
     openModal = function(itemData) {
         originalOpenModal(itemData);
@@ -930,17 +916,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (infoContainer) injectStarToggle(infoContainer, itemData);
     };
 
-    // Mantener filtros visibles y agregar FAVORITES al principio (antes de ALL)
     const originalInitFilters = initFilterControls;
     initFilterControls = function(decadesArray) {
         originalInitFilters(decadesArray);
         addFavoritesFilterButton();
     };
 
-    // Mantener comportamiento al cambiar filtros (volver de favorites a grilla principal)
     const originalFilterGallery = filterGallery;
     filterGallery = function(decade) {
-        // Si eligen cualquier década o ALL, ocultar favoritos y mostrar grilla normal
         if (favoritesContainer && galleryContainer) {
             favoritesContainer.style.display = 'none';
             galleryContainer.style.display = 'block';
