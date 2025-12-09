@@ -464,9 +464,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function applyReferenceScale(pxPerCm) {
             const refDimsSpan = document.getElementById('modal-ref-dims');
-
-            if (!compareActive) {
-                refContainer.classList.remove('visible');
+            const effectiveCompare = compareActive && (!isMiniature || currentMode === 'actual');
+            if (!effectiveCompare) {
+                refContainer.classList.remove('visible', 'compare-side-by-side');
                 if (refDimsSpan) refDimsSpan.style.display = 'none';
                 return;
             }
@@ -478,19 +478,24 @@ document.addEventListener('DOMContentLoaded', () => {
             svgWrapper.style.height = `${refHeightPx}px`;
             svgWrapper.style.width = `${refWidthPx}px`;
 
-            if (!isMiniature) {
+            if (isMiniature) {
+                // Side-by-side with miniature
+                refContainer.classList.add('compare-side-by-side');
+                refContainer.style.position = 'relative';
+                refContainer.style.top = '';
+                refContainer.style.left = '';
+                refContainer.style.bottom = '';
+                refContainer.style.transform = '';
+                refContainer.style.zIndex = '';
+            } else {
+                // Person overlay centered
+                refContainer.classList.remove('compare-side-by-side');
                 refContainer.style.position = 'fixed';
                 refContainer.style.top = '50%';
                 refContainer.style.left = '50%';
                 refContainer.style.transform = 'translate(-50%, -50%)';
                 refContainer.style.bottom = '';
                 refContainer.style.zIndex = '105';
-            } else {
-                refContainer.style.position = 'absolute';
-                refContainer.style.top = '50%';
-                refContainer.style.left = '50%';
-                refContainer.style.transform = 'translate(-50%, -50%)';
-                refContainer.style.bottom = '';
             }
         }
         function centerInViewport() {
@@ -528,9 +533,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const hPx = heightCM * currentPxPerCm;
 
             const scrollWrapper = document.getElementById('modal-scroll-wrapper');
-
             if (scrollWrapper) {
-                scrollWrapper.classList.toggle('fit-center', mode !== 'actual');
+                scrollWrapper.classList.toggle('fit-center', isMiniature || mode !== 'actual');
+                scrollWrapper.classList.toggle('compare-center', isMiniature && compareActive && mode === 'actual');
             }
 
             mainImg.style.width = `${wPx}px`;
@@ -540,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (visualContent) {
                 visualContent.style.width = `${wPx}px`;
                 visualContent.style.height = `${hPx}px`;
+                visualContent.classList.toggle('compare-side-by-side', isMiniature && compareActive && mode === 'actual');
             }
 
             if (feedbackEl) {
@@ -556,9 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             applyReferenceScale(currentPxPerCm);
 
-
             setTimeout(() => {
-                if (scrollWrapper) scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+                if (!scrollWrapper) return;
+                if (isMiniature) {
+                    const scrollTop = Math.max(0, (mainImg.offsetHeight - scrollWrapper.clientHeight) / 2);
+                    scrollWrapper.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                } else {
+                    scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             }, 100);
         }
 
@@ -579,16 +590,23 @@ document.addEventListener('DOMContentLoaded', () => {
             setScale('fit');
         };
         btnCompare.onclick = () => {
+            const turningOn = !compareActive;
+            if (turningOn && isMiniature && currentMode !== 'actual') {
+                btnActual.classList.add('active');
+                btnScale.classList.remove('active');
+                currentMode = 'actual';
+            }
             compareActive = !compareActive;
             btnCompare.classList.toggle('active', compareActive);
             
             if (!compareActive) {
-
+                refContainer.classList.remove('compare-side-by-side');
                 refContainer.style.position = 'absolute';
                 refContainer.style.bottom = '10px';
                 refContainer.style.top = '';
                 refContainer.style.left = '50%';
                 refContainer.style.transform = 'translateX(-50%)';
+                refContainer.style.zIndex = '';
             }
             setScale(currentMode);
         };
@@ -817,7 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
             maxDim = Math.max(maxDim, heightCM, widthCM);
         });
         const maxDisplayH = Math.min(window.innerHeight * 0.6, 700);
-        const cmPerPx = (maxDisplayH / maxDim) * 0.8; // factor visual
+        const cmPerPx = (maxDisplayH / maxDim) * 0.8;
 
         selectedItems.forEach(item => {
             const { heightCM, widthCM } = dimensionCMToNumbers(item['DIMSENSIONS (CM)']);
@@ -828,16 +846,40 @@ document.addEventListener('DOMContentLoaded', () => {
             side.className = 'fav-comp-side';
             side.dataset.heightCm = heightCM; 
             side.dataset.widthCm = widthCM;   
-            side.innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;">
-                    <img class="comp-img" src="${item['MEDIA URL']}" alt="${item.NAME}" style="width:${wPx}px;height:${hPx}px;object-fit:contain;">
-                    <div class="fav-comp-meta" style="margin-top:10px;text-align:center;font-family:'Inter',sans-serif;color:var(--secondary-color);font-size:0.85rem;">
-                        <div style="color:var(--primary-color);font-weight:700">${item.NAME || 'Untitled'}</div>
-                        <div>${item.DATE || ''} • ${item.TYPE || ''}</div>
-                        <div class="fav-comp-dims">${dimsText}</div>
-                    </div>
-                </div>
-            `;
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'fav-comp-meta';
+            metaDiv.style.marginTop = '10px';
+            metaDiv.style.textAlign = 'center';
+            metaDiv.style.fontFamily = "'Inter',sans-serif";
+            metaDiv.style.color = 'var(--secondary-color)';
+            metaDiv.style.fontSize = '0.85rem';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.style.color = 'var(--primary-color)';
+            nameDiv.style.fontWeight = '700';
+            nameDiv.textContent = item.NAME || 'Untitled';
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.textContent = `${item.DATE || ''} • ${item.TYPE || ''}`;
+            
+            const dimsDiv = document.createElement('div');
+            dimsDiv.className = 'fav-comp-dims';
+            dimsDiv.textContent = dimsText;
+            
+            metaDiv.appendChild(nameDiv);
+            metaDiv.appendChild(infoDiv);
+            metaDiv.appendChild(dimsDiv);
+            
+            const img = document.createElement('img');
+            img.className = 'comp-img';
+            img.src = item['MEDIA URL'];
+            img.alt = item.NAME;
+            img.style.width = `${wPx}px`;
+            img.style.height = `${hPx}px`;
+            img.style.objectFit = 'contain';
+            
+            side.appendChild(img);
+            side.appendChild(metaDiv);
             favComparisonContent.appendChild(side);
         });
 
